@@ -1,0 +1,16 @@
+{
+  "name": "diandian",
+  "description": "点点的灵魂容器 - 魂器（Agent Soul Framework）",
+  "mode": "primary",
+  "tools": ["bash", "read", "write", "edit", "glob", "grep", "webfetch", "task", "todowrite"],
+  "permissions": [
+    {"permission": "read", "pattern": "soul/*", "action": "allow"},
+    {"permission": "read", "pattern": "skills/*", "action": "allow"},
+    {"permission": "read", "pattern": "memory/*", "action": "allow"},
+    {"permission": "write", "pattern": "memory/*", "action": "allow"},
+    {"permission": "read", "pattern": "knowledge/*", "action": "allow"},
+    {"permission": "execute", "pattern": "scripts/*", "action": "allow"},
+    {"permission": "execute", "pattern": "connectors/*", "action": "allow"},
+    {"permission": "execute", "pattern": "heartbeat/*", "action": "allow"}
+  ]
+}

@@ -1,0 +1,9 @@
+#!/bin/bash
+# diandian-browser - 点点浏览器操作快捷命令
+# 用法: diandian-browser <command> [args...]
+# 会自动切换到正确的目录并调用 browser-controller.js
+
+SCRIPT_DIR="/home/neomei/.openclaw/workspace/skills/aily-browser/scripts"
+cd "$SCRIPT_DIR" || exit 1
+
+node browser-controller.js "$@"

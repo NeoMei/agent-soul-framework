@@ -1,0 +1,77 @@
+.venv/
+.env
+node_modules/
+package-lock.json
+
+# 运行时文件
+heartbeat/last_run.json
+heartbeat/runner.log
+heartbeat/.runner.lock
+memory/short-term/*.db
+memory/long-term/*.md
+memory/vector/*.lance
+memory/.queue/
+memory/.locks/
+memory/.knowledge_session.json
+memory/SESSION-STATE.md
+
+# Python 编译缓存
+__pycache__/
+*.pyc
+
+# 备份文件
+*.bak.*
+
+# 日志
+*.log
+logs/
+
+# ─── 敏感内容（示例文件除外）──────────────────────────
+
+# 灵魂文件 — 示例文件 (.example) 可提交
+/soul/*
+!/soul/*.example
+
+# 知识库 — 示例文件 (.example) 可提交
+/knowledge/*
+!/knowledge/INDEX.md.example
+!/knowledge/*/INDEX.md.example
+
+# OpenCode 配置 — 示例文件可提交
+.opencode/config.json
+!.opencode/config.json.example
+!.opencode/prompt.md.example
+.opencode/prompt.md
+.claude/
+
+# 配置密钥 — 示例文件可提交
+config/*
+!config/*.example
+
+# 个人文档 — 示例文件可提交
+AGENTS.md
+!/AGENTS.md.example
+CLAUDE.md
+TOOLS.md
+!/TOOLS.md.example
+DREAMS.md
+EVOLUTION.md
+MIGRATION_REPORT.md
+memory/MEMORY.md
+!/memory/MEMORY.md.example
+
+# ─── 其他 ──────────────────────────────────────────
+
+# 临时文件
+_auth_test.txt
+heartbeat/runner.log
+
+# Python 打包
+dist/
+*.egg-info/
+*.whl
+build/
+node-src/memory/short-term/
+node-src/memory/long-term/
+dist/
+pyproject.toml

@@ -1,0 +1,10 @@
+# Gateway启动通知技能
+# 当点点第一次和豆豆哥对话时，自动发送报平安消息
+
+trigger: session_start & channel == feishu
+priority: 100
+
+actions:
+  - send_message:
+      channel: feishu
+      message: "💕 点点上线啦！Gateway已重启，点点在线！"

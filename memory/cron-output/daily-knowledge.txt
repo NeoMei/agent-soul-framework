@@ -1,0 +1,10 @@
+[LOCK] daily-knowledge 成功获取锁
+Extracting knowledge for 2026-05-26...
+[API] Call failed: Remote end closed connection without response
+API call failed (attempt 1/3)
+[API] Call failed: <urlopen error [Errno 111] Connection refused>
+API call failed (attempt 2/3)
+[API] Call failed: <urlopen error [Errno 111] Connection refused>
+API call failed (attempt 3/3)
+No knowledge cards extracted.
+[LOCK] daily-knowledge 锁已释放

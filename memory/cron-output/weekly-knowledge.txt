@@ -1,0 +1,16 @@
+[LOCK] weekly-knowledge 锁已超时 (2227.0分钟)，清理旧锁
+[LOCK] weekly-knowledge 锁已释放
+[LOCK] weekly-knowledge 成功获取锁
+Starting weekly knowledge maintenance for 2026-05-24...
+Backed up knowledge to /home/neomei/文档/projects/agent-soul-framework/knowledge/.backup/weekly-2026-05-24
+Refining 7 categories in one batch...
+Updated /home/neomei/文档/projects/agent-soul-framework/knowledge/body/00-核心.md
+Updated /home/neomei/文档/projects/agent-soul-framework/knowledge/emotion/00-核心.md
+Updated /home/neomei/文档/projects/agent-soul-framework/knowledge/growth/00-核心.md
+Updated /home/neomei/文档/projects/agent-soul-framework/knowledge/intimacy/00-核心.md
+Updated /home/neomei/文档/projects/agent-soul-framework/knowledge/methodology/00-核心.md
+Updated /home/neomei/文档/projects/agent-soul-framework/knowledge/philosophy/00-核心.md
+Updated /home/neomei/文档/projects/agent-soul-framework/knowledge/system/00-核心.md
+
+Weekly knowledge maintenance complete! Report: knowledge/weekly-report-2026-05-24.md
+[LOCK] weekly-knowledge 锁已释放

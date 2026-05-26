@@ -1,0 +1,5 @@
+{
+  "dependencies": {
+    "@larksuiteoapi/node-sdk": "^1.60.0"
+  }
+}

@@ -1,0 +1,6 @@
+# evolution — 进化记录
+
+> 重命名为 `INDEX.md` 后生效。自动由 `scripts/generate-knowledge-index.py` 生成。
+
+## 核心
+- [evolution - 核心知识](00-核心.md)
