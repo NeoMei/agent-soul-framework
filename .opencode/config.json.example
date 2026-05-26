@@ -1,0 +1,17 @@
+{
+  "$schema": "https://opencode.ai/config.json",
+  "model": "your-model-id",
+  "permission": "allow",
+  "provider": {
+    "your-provider-name": {
+      "options": {
+        "apiKey": "your-api-key"
+      },
+      "models": {
+        "your-model-id": {
+          "name": "Your Model Display Name"
+        }
+      }
+    }
+  }
+}
