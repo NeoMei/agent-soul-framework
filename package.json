@@ -1,0 +1,77 @@
+{
+  "name": "@neomei/agent-soul",
+  "version": "4.2.0",
+  "description": "魂器 — 基于 OpenCode 的 AI Agent 管理层框架。持久记忆 · 自主学习 · 多端部署 · 心跳自治",
+  "type": "module",
+  "main": "dist/index.js",
+  "bin": {
+    "hunqi": "bin/hunqi",
+    "hunqi-heartbeat": "dist/heartbeat/runner.js",
+    "hunqi-knowledge": "bin/hunqi-knowledge"
+  },
+  "files": [
+    "dist",
+    "bin",
+    "plugin",
+    "soul/*.example",
+    "skills/*/SKILL.md",
+    "skills/*/scripts/*.py",
+    "skills/*/scripts/*.sh",
+    "skills/*/scripts/*.cjs",
+    "knowledge/*.example",
+    "knowledge/*/INDEX.md.example",
+    "scripts/*.py",
+    "heartbeat/*.py",
+    "heartbeat/*.json",
+    "heartbeat/*.sh",
+    "memory/MEMORY.md.example",
+    ".opencode/config.json.example",
+    ".opencode/prompt.md.example",
+    "AGENTS.md.example",
+    "TOOLS.md.example",
+    "README.md",
+    "start.sh",
+    "hunqi.sh",
+    "install.sh",
+    "uninstall.sh",
+    "heartbeat_wrapper.sh",
+    "test.sh",
+    "verify.sh"
+  ],
+  "scripts": {
+    "build": "tsc",
+    "dev": "tsc --watch",
+    "clean": "rm -rf dist",
+    "prepublishOnly": "npm run build"
+  },
+  "engines": {
+    "node": ">=20"
+  },
+  "keywords": [
+    "ai-agent",
+    "opencode",
+    "agent-framework",
+    "memory",
+    "knowledge",
+    "heartbeat",
+    "feishu",
+    "llm",
+    "agent-orchestration",
+    "self-improving"
+  ],
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/NeoMei/agent-soul-framework"
+  },
+  "author": "NeoMei",
+  "license": "MIT",
+  "dependencies": {
+    "zod": "^3.23.0",
+    "@neomei/opencode-feishu": "latest",
+    "@neomei/opencode-qiwei": "latest"
+  },
+  "devDependencies": {
+    "typescript": "^5.4.0",
+    "@types/node": "^20.0.0"
+  }
+}

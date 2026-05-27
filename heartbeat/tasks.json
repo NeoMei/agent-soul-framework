@@ -1,0 +1,12 @@
+{
+  "version": "2026-04-25",
+  "tasks": [
+    {
+      "id": "hello-world",
+      "name": "简单回复示例",
+      "time": "10:00",
+      "enabled": false,
+      "command": "echo 'Hello from heartbeat'"
+    }
+  ]
+}
