@@ -12,7 +12,7 @@ import requests
 import os
 
 # 飞书App配置
-APP_ID = os.environ.get("FEISHU_APP_ID", "cli_a9298a2012b8dcc7")
+APP_ID = os.environ.get("FEISHU_APP_ID", "")
 APP_SECRET = os.environ.get("FEISHU_APP_SECRET", "")
 
 # API基础URL
