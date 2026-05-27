@@ -12,7 +12,7 @@ import { homedir } from "node:os";
 // ============ 配置 ============
 const JIMENG_API_KEY = process.env.JIMENG_API_KEY || "";
 const JIMENG_MODEL = "doubao-seedream-5-0-260128";
-const FEISHU_APP_ID = process.env.FEISHU_APP_ID || "cli_a9298a2012b8dcc7";
+const FEISHU_APP_ID = process.env.FEISHU_APP_ID || "";
 const FEISHU_APP_SECRET = process.env.FEISHU_APP_SECRET || "";
 
 // ============ 风格提示词模板 ============

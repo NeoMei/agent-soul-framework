@@ -78,8 +78,8 @@ node scripts/send_voice.cjs /tmp/voice.opus
 ```
 
 ### API配置
-- **API Key**: `YjU0Y2Q5ZmYtMDhmYy00ZmExLTg4YTQt`
-- **API Secret**: `ZDY3ZmYzYTItNDllOC00ZjkxLWI0MDkt`
+- **API Key**: 通过环境变量 `DOUBAO_API_KEY` 配置
+- **API Secret**: 通过环境变量 `DOUBAO_API_SECRET` 配置
 - **音色ID**: `30149` (木金)
 - **语言**: `zh`
 

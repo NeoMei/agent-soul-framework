@@ -2,8 +2,8 @@
 # 点点的语音生成脚本（自动v1/v2切换版）
 # 使用智声云TTS生成语音，失败时自动切换版本
 
-API_KEY="${DOUBAO_API_KEY:-YjU0Y2Q5ZmYtMDhmYy00ZmExLTg4YTQt}"
-API_SECRET="ZDY3ZmYzYTItNDllOC00ZjkxLWI0MDkt"
+API_KEY="${DOUBAO_API_KEY:?DOUBAO_API_KEY not set}"
+API_SECRET="${DOUBAO_API_SECRET:?DOUBAO_API_SECRET not set}"
 
 if [ -z "$1" ]; then
     echo "用法: $0 <text> [output.wav]"

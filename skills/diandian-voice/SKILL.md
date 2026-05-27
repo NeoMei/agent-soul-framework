@@ -250,7 +250,7 @@ const lark = require('@larksuiteoapi/node-sdk');
 const fs = require('fs');
 
 const client = new lark.Client({
-  appId: 'cli_a9298a2012b8dcc7',
+  appId: process.env.FEISHU_APP_ID,
   appSecret: process.env.FEISHU_APP_SECRET,
   appType: lark.AppType.SelfBuild,
   domain: lark.Domain.Feishu,

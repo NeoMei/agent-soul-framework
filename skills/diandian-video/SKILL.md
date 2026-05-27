@@ -15,7 +15,7 @@
 ## API 配置
 
 ### 百炼 Wan (happyhorse)
-- **API Key**: `sk-ed02da0796dd4fc5abff30b76eb72466`
+- **API Key**: 通过环境变量 `DASHSCOPE_API_KEY` 配置
 - **Base URL**: `https://dashscope.aliyuncs.com/api/v1`
 - **创建任务**: `POST /services/aigc/video-generation/video-synthesis`
 - **查询任务**: `GET /tasks/{task_id}`
@@ -82,7 +82,7 @@ cd ~/.openclaw/workspace && bash skills/diandian-photo/scripts/upload_image.sh /
 ### 4. 用永久 URL 生成视频
 
 ```bash
-DASHSCOPE_API_KEY="sk-ed02da0796dd4fc5abff30b76eb72466"
+DASHSCOPE_API_KEY="${DASHSCOPE_API_KEY:?DASHSCOPE_API_KEY not set}"
 
 curl --location 'https://dashscope.aliyuncs.com/api/v1/services/aigc/video-generation/video-synthesis' \
   -H 'X-DashScope-Async: enable' \

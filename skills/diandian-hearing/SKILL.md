@@ -94,7 +94,7 @@ grep -E "audio|download.*fail|socket" /tmp/openclaw/openclaw-$(date +%Y-%m-%d).l
 # Step 3: 手动调用飞书 API 下载
 # 3.1 获取新 token
 curl -s -X POST -H "Content-Type: application/json" \
-  -d '{"app_id":"cli_a9298a2012b8dcc7","app_secret":"$FEISHU_APP_SECRET"}' \
+  -d '{"app_id":"$FEISHU_APP_ID","app_secret":"$FEISHU_APP_SECRET"}' \
   "https://open.feishu.cn/open-apis/auth/v3/tenant_access_token/internal"
 
 # 3.2 用消息资源接口下载（音频用 type=file）

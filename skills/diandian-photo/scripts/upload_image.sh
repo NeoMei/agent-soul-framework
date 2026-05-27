@@ -5,7 +5,7 @@
 
 IMG_PATH="$1"
 PERMISSION="${2:-1}"
-TOKEN="227|RVBZauHbNKIbf3XFNdfM3w2T9feeTeXFuq5Fw6Yf"
+TOKEN="${IMGTG_TOKEN:?IMGTG_TOKEN not set}"
 
 if [ -z "$IMG_PATH" ] || [ ! -f "$IMG_PATH" ]; then
     echo "用法: $0 <图片路径> [permission]"
