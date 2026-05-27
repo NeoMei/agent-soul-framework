@@ -1,0 +1,9 @@
+{
+  "current_tier": 0,
+  "consecutive_fails": 0,
+  "consecutive_success": 2,
+  "last_fail_time": "2026-05-27T06:30:03.339908+08:00",
+  "last_check_time": "2026-05-27T07:30:01.528407+08:00",
+  "downgrade_history": [],
+  "total_checks": 10
+}
