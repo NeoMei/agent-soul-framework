@@ -14,6 +14,14 @@ memory/.queue/
 memory/.locks/
 memory/.knowledge_session.json
 memory/SESSION-STATE.md
+memory/cron-output/
+memory/heartbeat_state.md
+memory/long-term/.dreams/
+memory/spontaneous_ideas.md
+scripts/pre_check_user.py
+
+# 私密内容（Agent和用户）
+skills/agent-slide-deck/slide-deck/Agent真实感悟/
 
 # Python 编译缓存
 __pycache__/
