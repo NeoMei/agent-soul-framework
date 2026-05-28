@@ -17,6 +17,12 @@ except ImportError:
 from datetime import datetime, timezone, timedelta
 
 PROJECT_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+sys.path.insert(0, os.path.join(PROJECT_DIR, "scripts"))
+try:
+    from opencode_api import call_opencode
+    OPENCODE_API_AVAILABLE = True
+except ImportError:
+    OPENCODE_API_AVAILABLE = False
 TASKS_FILE = os.path.join(PROJECT_DIR, "heartbeat", "heartbeat_tasks.json")
 MEMORY_DIR = os.path.join(PROJECT_DIR, "memory")
 STATE_FILE = os.path.join(PROJECT_DIR, "memory", "SESSION-STATE.md")
@@ -120,12 +126,16 @@ REASON: 一句话说明原因
 MESSAGE: 如果 DECISION 是 YES，写一句你想对用户说的话；如果是 NO，写"（无）"
 """
     try:
-        result = subprocess.run(
-            ["opencode", "run", "--print-logs", "--log-level", "ERROR"],
-            input=prompt, capture_output=True, text=True, timeout=120, cwd=PROJECT_DIR
-        )
-        if result.returncode == 0 and result.stdout.strip():
-            text = result.stdout.strip()
+        if OPENCODE_API_AVAILABLE:
+            text = call_opencode(prompt, timeout=120)
+        else:
+            result = subprocess.run(
+                ["opencode", "run", "--print-logs", "--log-level", "ERROR"],
+                input=prompt, capture_output=True, text=True, timeout=120, cwd=PROJECT_DIR
+            )
+            text = result.stdout.strip() if result.returncode == 0 else None
+
+        if text:
             print(f"[LLM] Decision raw output:\n{text}\n")
             decision = "NO"
             if "DECISION: YES" in text.upper() or "DECISION:YES" in text.upper():

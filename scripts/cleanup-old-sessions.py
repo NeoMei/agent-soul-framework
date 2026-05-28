@@ -48,6 +48,7 @@ def main():
 
         # 获取所有 sessions
         headers = _make_auth_header()
+        headers["Content-Type"] = "application/json"
         req = urllib.request.Request(f"{OPENCODE_URL}/session", headers=headers)
         with urllib.request.urlopen(req, timeout=10) as resp:
             sessions = json.loads(resp.read().decode())
@@ -71,12 +72,13 @@ def main():
 
         print(f"[CLEANUP] 发现 {len(old_sessions)} 个超过 {KEEP_DAYS} 天的旧会话（总共 {len(sessions)} 个）")
 
+        del_headers = _make_auth_header()
+        del_headers["Content-Type"] = "application/json"
         deleted = 0
         failed = 0
         for s in old_sessions:
             sid = s["id"]
             try:
-                del_headers = _make_auth_header()
                 del_req = urllib.request.Request(
                     f"{OPENCODE_URL}/session/{sid}",
                     headers=del_headers,

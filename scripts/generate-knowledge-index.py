@@ -16,14 +16,14 @@ STATE_FILE = os.path.join(PROJECT_DIR, "memory", "index_state.json")
 def get_file_mtime(filepath):
     try:
         return os.path.getmtime(filepath)
-    except:
+    except OSError:
         return 0
 
 def load_state():
     try:
         with open(STATE_FILE, 'r') as f:
             return json.load(f)
-    except:
+    except (OSError, json.JSONDecodeError):
         return {}
 
 def save_state(state):
@@ -73,7 +73,7 @@ def extract_first_heading(filepath):
                     return line.replace("# ", "").strip()
                 if line.startswith("## "):
                     return line.replace("## ", "").strip()
-    except:
+    except (OSError, UnicodeDecodeError):
         pass
     return ""
 

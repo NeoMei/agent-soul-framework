@@ -20,7 +20,8 @@
       "name": "每日待办生成",
       "time": "10:00",
       "days": "daily",
-      "principle": "生成今天能往前推一步的 3-5 个具体小任务(每个≤30min)",
+      "enabled": false,
+      "principle": "生成今天能往前推一步的 3-5 个具体小任务(每个≤30min) — 已禁用：脚本尚未实现",
       "action": "run_script",
       "params": {
         "script": "scripts/generate-todolist.py",
@@ -140,6 +141,20 @@
       "task_id": "daily-knowledge",
       "action": "run_script",
       "result": "ok"
+    },
+    {
+      "timestamp": "2026-05-28T03:00:29.897095+08:00",
+      "date": "2026-05-28",
+      "task_id": "daily-knowledge",
+      "action": "run_script",
+      "result": "ok"
+    },
+    {
+      "timestamp": "2026-05-28T10:00:22.056116+08:00",
+      "date": "2026-05-28",
+      "task_id": "daily-todolist",
+      "action": "run_script",
+      "result": "fail: Script not found: /home/neomei/文档/projects/agent-soul-framework/scripts/generate-todolist.py"
     }
   ]
 }

@@ -25,6 +25,12 @@ from datetime import datetime, timezone, timedelta
 from pathlib import Path
 
 PROJECT_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+sys.path.insert(0, os.path.join(PROJECT_DIR, "scripts"))
+try:
+    from opencode_api import call_opencode
+    OPENCODE_API_AVAILABLE = True
+except ImportError:
+    OPENCODE_API_AVAILABLE = False
 TASKS_FILE = os.path.join(PROJECT_DIR, "heartbeat", "heartbeat_tasks.json")
 MEMORY_DIR = os.path.join(PROJECT_DIR, "memory")
 STATE_FILE = os.path.join(PROJECT_DIR, "memory", "SESSION-STATE.md")
@@ -40,7 +46,11 @@ def acquire_lock():
         return fd
     except (OSError, IOError):
         print("[LOCK] 另一个 heartbeat 实例正在运行，跳过")
-        sys.exit(0)
+        try:
+            os.close(fd)
+        except Exception:
+            pass
+        return None
 
 def release_lock(fd):
     """释放文件锁"""
@@ -213,19 +223,26 @@ def deliver_message(message, task):
 
 
 def llm_generate(prompt, max_tokens=2000):
-    """通用 LLM 调用 — 通过 opencode run 间接调用（利用其 Anthropic 通道）"""
+    """通用 LLM 调用 — 优先通过 opencode_api，回退到 subprocess"""
     try:
-        result = subprocess.run(
-            ["opencode", "run", "--print-logs", "--log-level", "ERROR"],
-            input=prompt, capture_output=True, text=True, timeout=180, cwd=PROJECT_DIR
-        )
-        output = result.stdout.strip()
-        if result.returncode != 0:
-            return None, f"opencode run failed: {result.stderr[:200]}"
-        if not output:
-            return None, "Empty response"
-        print(f"[LLM-OUTPUT] {output[:200]}...")
-        return output, None
+        if OPENCODE_API_AVAILABLE:
+            output = call_opencode(prompt, timeout=180)
+            if not output:
+                return None, "Empty response from API"
+            print(f"[LLM-OUTPUT] {output[:200]}...")
+            return output, None
+        else:
+            result = subprocess.run(
+                ["opencode", "run", "--print-logs", "--log-level", "ERROR"],
+                input=prompt, capture_output=True, text=True, timeout=180, cwd=PROJECT_DIR
+            )
+            output = result.stdout.strip()
+            if result.returncode != 0:
+                return None, f"opencode run failed: {result.stderr[:200]}"
+            if not output:
+                return None, "Empty response"
+            print(f"[LLM-OUTPUT] {output[:200]}...")
+            return output, None
     except Exception as e:
         return None, str(e)
 
@@ -316,26 +333,32 @@ REASON: 一句话说明原因
 MESSAGE: 如果 DECISION 是 YES，写一句你想对用户说的话；如果是 NO，写"（无）"
 """
     try:
-        result = subprocess.run(
-            ["opencode", "run", "--print-logs", "--log-level", "ERROR"],
-            input=prompt, capture_output=True, text=True, timeout=120, cwd=PROJECT_DIR
-        )
-        if result.returncode == 0 and result.stdout.strip():
-            text = result.stdout.strip()
-            print(f"[LLM] Decision raw output:\n{text}\n")
-            decision = "NO"
-            if "DECISION: YES" in text.upper() or "DECISION:YES" in text.upper():
-                decision = "YES"
-            message = None
-            for line in text.splitlines():
-                if line.strip().upper().startswith("MESSAGE:"):
-                    message = line.split(":", 1)[1].strip()
-                    if message in ("（无）", "(无)"):
-                        message = None
-                    break
-            return decision == "YES", text, message
+        if OPENCODE_API_AVAILABLE:
+            text = call_opencode(prompt, timeout=120)
+            if not text:
+                raise ValueError("Empty response from API")
         else:
-            print(f"[WARN] opencode run failed: {result.stderr[:200]}")
+            result = subprocess.run(
+                ["opencode", "run", "--print-logs", "--log-level", "ERROR"],
+                input=prompt, capture_output=True, text=True, timeout=120, cwd=PROJECT_DIR
+            )
+            if result.returncode == 0 and result.stdout.strip():
+                text = result.stdout.strip()
+            else:
+                raise ValueError(f"opencode run failed: {result.stderr[:200]}")
+
+        print(f"[LLM] Decision raw output:\n{text}\n")
+        decision = "NO"
+        if "DECISION: YES" in text.upper() or "DECISION:YES" in text.upper():
+            decision = "YES"
+        message = None
+        for line in text.splitlines():
+            if line.strip().upper().startswith("MESSAGE:"):
+                message = line.split(":", 1)[1].strip()
+                if message in ("（无）", "(无)"):
+                    message = None
+                break
+        return decision == "YES", text, message
     except Exception as e:
         print(f"[WARN] LLM decision failed: {e}", file=sys.stderr)
     print("[FALLBACK] LLM failed, using random decision")
@@ -537,10 +560,13 @@ def check_dynamic(dynamic, tasks, now):
     if cooldown_hours > 0:
         task_history = [h for h in history if h.get("task_id") == task_id]
         if task_history:
-            last_ts = datetime.fromisoformat(task_history[-1]["timestamp"])
-            hours_since = (now - last_ts).total_seconds() / 3600
-            if hours_since < cooldown_hours:
-                return False
+            try:
+                last_ts = datetime.fromisoformat(task_history[-1]["timestamp"])
+                hours_since = (now - last_ts).total_seconds() / 3600
+                if hours_since < cooldown_hours:
+                    return False
+            except (ValueError, TypeError):
+                pass
     last_interaction_min = conditions.get("last_interaction_minutes")
     if last_interaction_min:
         last = get_last_interaction_time()
@@ -593,7 +619,6 @@ def update_session_state_heartbeat():
         marker = "**Last Heartbeat**:"
         new_line = f"{marker} {now_str}"
         if marker in content:
-            import re
             content = re.sub(re.escape(marker) + r".*", new_line, content)
         else:
             content += f"\n{new_line}\n"
@@ -604,6 +629,8 @@ def update_session_state_heartbeat():
 
 def main():
     lock_fd = acquire_lock()
+    if lock_fd is None:
+        return
     try:
         _main()
     finally:

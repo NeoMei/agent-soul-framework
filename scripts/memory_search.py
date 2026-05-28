@@ -192,8 +192,22 @@ def search_memory_md(query, limit=10):
 
 
 def search_conversations_db(query, limit=5):
-    """通过魂器自身的 conversations.db 搜索历史对话（已覆盖 search_sessions）"""
-    return []
+    import sqlite3
+    db_path = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))),
+                           "memory", "short-term", "conversations.db")
+    if not os.path.exists(db_path):
+        return []
+    try:
+        with sqlite3.connect(db_path) as conn:
+            rows = conn.execute(
+                "SELECT session_id, role, content, timestamp FROM conversations "
+                "WHERE content LIKE ? ORDER BY timestamp DESC LIMIT ?",
+                (f"%{query}%", limit)
+            ).fetchall()
+            return [{"session_id": r[0], "role": r[1], "content": r[2][:200], "timestamp": r[3]}
+                    for r in rows]
+    except Exception:
+        return []
 
 
 def print_results(all_results):

@@ -13,6 +13,7 @@ Structured Memory Manager — Hermes 风格记忆系统
 """
 
 import json, os, re, sqlite3, sys
+import datetime as dt_mod
 from datetime import datetime, timezone, timedelta
 from pathlib import Path
 
@@ -29,6 +30,8 @@ def now_beijing():
     return datetime.now(timezone(timedelta(hours=8)))
 
 def read_memory():
+    if not MEMORY_FILE.exists():
+        return "# Memory Palace\n"
     with open(MEMORY_FILE, "r", encoding="utf-8") as f:
         return f.read()
 
@@ -236,8 +239,9 @@ def init_session_search():
     for col in ["content", "participant"]:
         try:
             conn.execute(f"ALTER TABLE sessions ADD COLUMN {col} TEXT")
-        except sqlite3.OperationalError:
-            pass
+        except sqlite3.OperationalError as e:
+            if "duplicate column" not in str(e).lower():
+                print(f"[WARN] ALTER TABLE failed for column {col}: {e}")
     conn.execute("""CREATE VIRTUAL TABLE IF NOT EXISTS sessions_fts USING fts5(
         id, date, path, summary, content, participant, content='sessions', content_rowid='rowid'
     )""")
@@ -295,11 +299,9 @@ def cmd_search(query, limit=10, show_content=False):
                             print(f"    {line[:150]}")
                     print(f"  路径: {path}")
                     print()
-                conn.close()
                 return
 
             print(f"[INFO] 未找到匹配 '{query}' 的会话。")
-            conn.close()
             return
 
         print(f"🔍 '{query}' 匹配 {len(rows)} 个会话:\n")
@@ -319,7 +321,6 @@ def cmd_search(query, limit=10, show_content=False):
 def cmd_index_sessions(limit=50, force=False):
     """索引最近会话到 FTS5 — 从魂器自身的 conversations.db 读取"""
     conn = init_session_search()
-    import sqlite3 as sql
 
     # 从魂器自己的 conversations.db 读取对话并索引
     if not CONVERSATIONS_DB.exists():
@@ -327,66 +328,62 @@ def cmd_index_sessions(limit=50, force=False):
         conn.close()
         return
 
+    indexed = 0
     try:
-        src_conn = sql.connect(str(CONVERSATIONS_DB))
-        # 获取所有 session
-        sessions = src_conn.execute(
-            "SELECT session_id, MAX(timestamp) as last_ts FROM conversations GROUP BY session_id ORDER BY last_ts DESC LIMIT ?",
-            (limit,)
-        ).fetchall()
-
-        indexed = 0
-        for (sess_id, last_ts) in sessions:
-            # 检查是否已索引
-            exists = conn.execute("SELECT COUNT(*) FROM sessions WHERE id=?", (sess_id,)).fetchone()[0]
-            if exists and not force:
-                continue
-
-            # 获取该 session 的所有对话
-            rows = src_conn.execute(
-                "SELECT role, content, timestamp FROM conversations WHERE session_id=? ORDER BY timestamp",
-                (sess_id,)
+        with sqlite3.connect(str(CONVERSATIONS_DB)) as src_conn:
+            # 获取所有 session
+            sessions = src_conn.execute(
+                "SELECT session_id, MAX(timestamp) as last_ts FROM conversations GROUP BY session_id ORDER BY last_ts DESC LIMIT ?",
+                (limit,)
             ).fetchall()
 
-            import datetime as dt_mod
-            (first_ts,) = src_conn.execute(
-                "SELECT MIN(timestamp) FROM conversations WHERE session_id=?", (sess_id,)
-            ).fetchone()
-            date_str = dt_mod.datetime.fromtimestamp(first_ts).strftime("%Y-%m-%d %H:%M") if first_ts else "unknown"
+            for (sess_id, last_ts) in sessions:
+                # 检查是否已索引
+                exists = conn.execute("SELECT COUNT(*) FROM sessions WHERE id=?", (sess_id,)).fetchone()[0]
+                if exists and not force:
+                    continue
 
-            messages = []
-            participants = set()
-            for role, content, ts in rows:
-                if role in ("user", "assistant"):
-                    label = "👤" if role == "user" else "🤖"
-                    messages.append(f"{label} {content[:200]}")
-                    if role == "user":
-                        participants.add("user")
+                # 获取该 session 的所有对话
+                rows = src_conn.execute(
+                    "SELECT role, content, timestamp FROM conversations WHERE session_id=? ORDER BY timestamp",
+                    (sess_id,)
+                ).fetchall()
 
-            summary = " | ".join(messages[:3])[:300] if messages else "(空会话)"
-            content = "\n".join(messages)[:50000]
-            participant = ", ".join(participants) if participants else "unknown"
+                (first_ts,) = src_conn.execute(
+                    "SELECT MIN(timestamp) FROM conversations WHERE session_id=?", (sess_id,)
+                ).fetchone()
+                date_str = dt_mod.datetime.fromtimestamp(first_ts).strftime("%Y-%m-%d %H:%M") if first_ts else "unknown"
 
-            if exists:
-                conn.execute(
-                    "UPDATE sessions SET date=?, summary=?, content=?, participant=? WHERE id=?",
-                    (date_str, summary, content, participant, sess_id)
-                )
-            else:
-                conn.execute(
-                    "INSERT INTO sessions (id, date, path, summary, content, participant) VALUES (?, ?, ?, ?, ?, ?)",
-                    (sess_id, date_str, str(CONVERSATIONS_DB), summary, content, participant)
-                )
-            indexed += 1
+                messages = []
+                participants = set()
+                for role, content, ts in rows:
+                    if role in ("user", "assistant"):
+                        label = "👤" if role == "user" else "🤖"
+                        messages.append(f"{label} {content[:200]}")
+                        if role == "user":
+                            participants.add("user")
 
-        src_conn.close()
+                summary = " | ".join(messages[:3])[:300] if messages else "(空会话)"
+                content = "\n".join(messages)[:50000]
+                participant = ", ".join(participants) if participants else "unknown"
+
+                if exists:
+                    conn.execute(
+                        "UPDATE sessions SET date=?, summary=?, content=?, participant=? WHERE id=?",
+                        (date_str, summary, content, participant, sess_id)
+                    )
+                else:
+                    conn.execute(
+                        "INSERT INTO sessions (id, date, path, summary, content, participant) VALUES (?, ?, ?, ?, ?, ?)",
+                        (sess_id, date_str, str(CONVERSATIONS_DB), summary, content, participant)
+                    )
+                indexed += 1
+
     except Exception as e:
         print(f"[WARN] 索引失败: {e}")
+    finally:
+        conn.commit()
         conn.close()
-        return
-
-    conn.commit()
-    conn.close()
     print(f"[OK] 索引了 {indexed} 个会话。")
 
 # ── 主入口 ────────────────────────────────────────

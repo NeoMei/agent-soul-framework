@@ -25,36 +25,32 @@ def now_beijing():
     return datetime.now(timezone(timedelta(hours=8)))
 
 def find_recent_sessions(days=7):
-    """从 conversations.db 找到最近 N 天的会话"""
     if not os.path.exists(CONVERSATIONS_DB):
         return []
 
     import sqlite3
     cutoff = (now_beijing() - timedelta(days=days)).timestamp()
-    conn = sqlite3.connect(CONVERSATIONS_DB)
-    rows = conn.execute(
-        "SELECT DISTINCT session_id, MIN(timestamp) as first_ts FROM conversations "
-        "WHERE timestamp > ? GROUP BY session_id ORDER BY first_ts DESC",
-        (cutoff,)
-    ).fetchall()
-    conn.close()
-    return [(sid, first_ts, sid) for sid, first_ts in rows]
+    with sqlite3.connect(CONVERSATIONS_DB) as conn:
+        rows = conn.execute(
+            "SELECT DISTINCT session_id, MIN(timestamp) as first_ts FROM conversations "
+            "WHERE timestamp > ? GROUP BY session_id ORDER BY first_ts DESC",
+            (cutoff,)
+        ).fetchall()
+    return [(sid, first_ts) for sid, first_ts in rows]
 
 
 def extract_user_messages(session_id):
-    """从 conversations.db 提取会话中的用户消息"""
     import sqlite3
     messages = []
     try:
-        conn = sqlite3.connect(CONVERSATIONS_DB)
-        rows = conn.execute(
-            "SELECT role, content FROM conversations WHERE session_id LIKE ? AND role='user' ORDER BY timestamp",
-            (f"%{session_id}%",)
-        ).fetchall()
-        for role, content in rows:
-            if content and len(content) > 5:
-                messages.append(content)
-        conn.close()
+        with sqlite3.connect(CONVERSATIONS_DB) as conn:
+            rows = conn.execute(
+                "SELECT role, content FROM conversations WHERE session_id = ? AND role='user' ORDER BY timestamp",
+                (session_id,)
+            ).fetchall()
+            for role, content in rows:
+                if content and len(content) > 5:
+                    messages.append(content)
     except Exception:
         pass
     return messages
@@ -95,7 +91,7 @@ def main():
         return
 
     synced = 0
-    for sid, _, _ in sessions[:20]:
+    for sid, _ in sessions[:20]:
         ok = sync_to_longterm(sid)
         if ok:
             synced += 1

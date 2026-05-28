@@ -91,21 +91,21 @@ def cmd_pre_compact(session_id):
         return
 
     import sqlite3
-    conn = sqlite3.connect(CONVERSATIONS_DB)
-    rows = conn.execute(
-        "SELECT role, content FROM conversations WHERE session_id LIKE ? AND role='user' ORDER BY timestamp",
-        (f"%{session_id}%",)
-    ).fetchall()
-
     key_lines = []
-    for role, content in rows:
-        if content and len(content) > 10:
-            key_lines.append(f"用户说了: {content[:200]}")
-
-    conn.close()
+    try:
+        with sqlite3.connect(CONVERSATIONS_DB) as conn:
+            rows = conn.execute(
+                "SELECT role, content FROM conversations WHERE session_id = ? AND role='user' ORDER BY timestamp",
+                (session_id,)
+            ).fetchall()
+            for role, content in rows:
+                if content and len(content) > 10:
+                    key_lines.append(f"用户说了: {content[:200]}")
+    except Exception as e:
+        print(f"[WARN] DB read failed: {e}")
 
     if key_lines:
-        # 追加到 MEMORY.md
+        os.makedirs(os.path.dirname(MEMORY_FILE), exist_ok=True)
         with open(MEMORY_FILE, "a", encoding="utf-8") as f:
             f.write(f"\n\n## 压缩保护 ({now_beijing()})\n\n")
             for line in key_lines[-5:]:

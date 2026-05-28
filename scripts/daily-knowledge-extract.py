@@ -93,13 +93,26 @@ def get_existing_topics(category):
     return topics
 
 
+_INDEX_CACHE = {}
+_INDEX_MTIME = {}
+
+
 def get_all_indices():
     indices = []
     for category in ["body", "emotion", "evolution", "growth", "intimacy", "methodology", "philosophy", "system"]:
         index_file = os.path.join(KNOWLEDGE_DIR, category, "INDEX.md")
-        if os.path.exists(index_file):
+        if not os.path.exists(index_file):
+            continue
+        mtime = os.path.getmtime(index_file)
+        if category in _INDEX_CACHE and _INDEX_MTIME.get(category) == mtime:
+            indices.append(_INDEX_CACHE[category])
+        else:
             with open(index_file, "r", encoding="utf-8") as f:
-                indices.append(f"## {category}\n{f.read()[:1500]}")
+                content = f.read()[:1500]
+            cached = f"## {category}\n{content}"
+            _INDEX_CACHE[category] = cached
+            _INDEX_MTIME[category] = mtime
+            indices.append(cached)
     return "\n\n".join(indices)
 
 

@@ -122,3 +122,21 @@ def reset_session():
     if os.path.exists(SESSION_FILE):
         os.remove(SESSION_FILE)
     return True
+
+
+def health_check():
+    """健康检查：验证 OpenCode server 是否可连接"""
+    try:
+        headers = {"Content-Type": "application/json"}
+        headers.update(_make_auth_header())
+        req = urllib.request.Request(
+            f"{SERVER_URL}/session",
+            headers=headers,
+            method="GET"
+        )
+        with urllib.request.urlopen(req, timeout=10) as resp:
+            if resp.status in (200, 201):
+                return {"status": "healthy", "server": SERVER_URL, "reachable": True}
+            return {"status": "degraded", "server": SERVER_URL, "reachable": True, "http_status": resp.status}
+    except Exception as e:
+        return {"status": "unhealthy", "server": SERVER_URL, "reachable": False, "error": str(e)}
