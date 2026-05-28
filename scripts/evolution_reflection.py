@@ -7,6 +7,7 @@ Evolution Task Executor — 点点每日进化任务执行器（魂器版）
 """
 
 import os
+import re
 import subprocess
 import json
 import sys
@@ -50,7 +51,7 @@ def get_evolution_goals():
     try:
         with open(goals_file, "r", encoding="utf-8") as f:
             return f.read()
-    except:
+    except (OSError, UnicodeDecodeError):
         return None
 
 def get_past_tasks():
@@ -64,7 +65,7 @@ def get_past_tasks():
             if "evolution-task:" in line:
                 tasks.append(line)
         return tasks[-5:] if len(tasks) > 5 else tasks
-    except:
+    except (OSError, UnicodeDecodeError):
         return []
 
 def generate_learning_task(goals, past_tasks):
@@ -133,7 +134,8 @@ task: {task_name}
 
 """
     
-    filename = f"{today}-learning-{task_type[:2]}.md"
+    safe_type = re.sub(r'[^\w\u4e00-\u9fff]', '', task_type) if task_type else "general"
+    filename = f"{today}-learning-{safe_type[:2] or 'general'}.md"
     filepath = append_to_knowledge("growth", filename, content)
     return filepath
 

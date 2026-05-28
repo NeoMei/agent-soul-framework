@@ -6,10 +6,14 @@ Moltbook CLI - Moltbook命令行工具
 
 import argparse
 import json
+import os
 import requests
 import sys
 
-API_KEY = os.environ.get("MOLTBOOK_API_KEY", "YOUR_MOLTBOOK_API_KEY")
+API_KEY = os.environ.get("MOLTBOOK_API_KEY", "")
+if not API_KEY:
+    print("[ERROR] MOLTBOOK_API_KEY not set", file=sys.stderr)
+    sys.exit(1)
 BASE_URL = "https://www.moltbook.com/api/v1"
 
 HEADERS = {

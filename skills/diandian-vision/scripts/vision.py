@@ -29,16 +29,15 @@ def get_mime_type(file_path):
     return mapping.get(ext, 'image/jpeg')
 
 def call_gemini(contents):
-    """向 Gemini 发送对话请求"""
     api_key = get_gemini_api_key()
-    url = f"{API_ENDPOINT}?key={api_key}"
-    
     data = {"contents": contents}
-    
     req = urllib.request.Request(
-        url,
+        API_ENDPOINT,
         data=json.dumps(data).encode('utf-8'),
-        headers={'Content-Type': 'application/json'}
+        headers={
+            'Content-Type': 'application/json',
+            'x-goog-api-key': api_key
+        }
     )
     
     try:

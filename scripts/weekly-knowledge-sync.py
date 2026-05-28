@@ -25,24 +25,32 @@ from opencode_api import call_opencode
 TASK_ID = "weekly-knowledge"
 
 
+def _format_tz(dt=None):
+    if dt is None:
+        dt = datetime.now().astimezone()
+    return dt.strftime("%Y-%m-%dT%H:%M:%S") + dt.strftime("%z")[:3] + ":" + dt.strftime("%z")[3:]
+
+
 def write_log(status, detail=""):
     os.makedirs(LOG_DIR, exist_ok=True)
     log_file = os.path.join(LOG_DIR, "cron-runs.log")
-    tz = datetime.now().astimezone().strftime("%Y-%m-%dT%H:%M:%S%z")
-    if len(tz) > 19:
-        tz = tz[:19] + "+" + tz[20:22] + ":" + tz[22:24]
+    tz = _format_tz()
     line = f"{tz} [{TASK_ID}] {status} {detail}\n"
     with open(log_file, "a", encoding="utf-8") as f:
         f.write(line)
 
 
 def backup_knowledge():
-    """备份整个知识库"""
     today = datetime.now().strftime("%Y-%m-%d")
     backup_dir = os.path.join(KNOWLEDGE_DIR, ".backup", f"weekly-{today}")
+    old_backup = backup_dir + ".old"
+    if os.path.exists(old_backup):
+        shutil.rmtree(old_backup)
     if os.path.exists(backup_dir):
-        shutil.rmtree(backup_dir)
+        os.rename(backup_dir, old_backup)
     shutil.copytree(KNOWLEDGE_DIR, backup_dir, ignore=shutil.ignore_patterns(".backup"))
+    if os.path.exists(old_backup):
+        shutil.rmtree(old_backup)
     print(f"Backed up knowledge to {backup_dir}")
     return backup_dir
 
@@ -102,7 +110,7 @@ def refine_all_categories(category_data):
 
 如果某个分类本周没有需要整理的内容，输出「分类名:无」"""
 
-    import subprocess, re
+    import re
     text = call_opencode(prompt, timeout=600)
     if not text:
         print("[FAIL] API call failed")

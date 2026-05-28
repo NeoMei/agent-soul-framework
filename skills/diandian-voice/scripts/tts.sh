@@ -29,18 +29,16 @@ send_task() {
     local sig
     sig=$(gen_signature "$ts")
 
+    local json_payload
+    json_payload=$(python3 -c "import json,sys; print(json.dumps({'voiceId':'30149','text':sys.argv[1],'language':'zh','fileFormat':'mp3'}))" "$TEXT")
+
     local resp
     resp=$(curl -s --connect-timeout 10 --max-time 60 -X POST "https://tts-api.dubbingx.com/${version}/addTtsTask" \
         -H "Content-Type: application/json" \
         -H "Authorization: Bearer $API_KEY" \
         -H "X-Timestamp: $ts" \
         -H "X-Signature: $sig" \
-        -d "{
-            \"voiceId\": \"30149\",
-            \"text\": \"$TEXT\",
-            \"language\": \"zh\",
-            \"fileFormat\": \"mp3\"
-        }")
+        -d "$json_payload")
 
     local task_id
     task_id=$(echo "$resp" | python3 -c "import sys,json; print(json.load(sys.stdin).get('data',{}).get('taskId',''))" 2>/dev/null)

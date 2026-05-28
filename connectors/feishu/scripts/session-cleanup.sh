@@ -22,27 +22,48 @@ fi
 # 读取当前 sessions
 SESSIONS=$(cat "$SESSIONS_FILE")
 
-# 检查每个 session 的消息数
-CLEANED=0
-for session_id in $(echo "$SESSIONS" | python3 -c "import sys,json; data=json.load(sys.stdin); print('\n'.join(s['sessionId'] for s in data.get('sessions',[])))"); do
-    msg_count=$(sqlite3 "$DB_FILE" "SELECT COUNT(*) FROM message WHERE session_id = '$session_id';" 2>/dev/null || echo "0")
-    
-    if [ "$msg_count" -gt "$MAX_MESSAGES" ]; then
-        echo "[session-cleanup] $session_id has $msg_count messages > $MAX_MESSAGES, removing mapping"
-        # 从 feishu-sessions.json 中移除
-        python3 -c "
-import json, sys
-with open('$SESSIONS_FILE', 'r') as f:
+# 使用单一 Python 脚本安全处理所有操作，避免注入
+python3 - "$SESSIONS_FILE" "$DB_FILE" "$MAX_MESSAGES" <<'PYEOF'
+import json, sqlite3, sys, os
+
+sessions_file = sys.argv[1]
+db_file = sys.argv[2]
+max_messages = int(sys.argv[3])
+
+with open(sessions_file, "r") as f:
     data = json.load(f)
-data['sessions'] = [s for s in data.get('sessions', []) if s['sessionId'] != '$session_id']
-with open('$SESSIONS_FILE', 'w') as f:
-    json.dump(data, f, ensure_ascii=False, indent=2)
-" 2>/dev/null
-        CLEANED=$((CLEANED + 1))
-    else
-        echo "[session-cleanup] $session_id has $msg_count messages ≤ $MAX_MESSAGES, keeping"
-    fi
-done
+
+sessions = data.get("sessions", [])
+if not sessions:
+    print("[session-cleanup] No sessions found")
+    sys.exit(0)
+
+conn = sqlite3.connect(db_file)
+try:
+    cleaned = 0
+    remaining = []
+    for s in sessions:
+        sid = s.get("sessionId", "")
+        cursor = conn.execute("SELECT COUNT(*) FROM message WHERE session_id = ?", (sid,))
+        msg_count = cursor.fetchone()[0]
+
+        if msg_count > max_messages:
+            print(f"[session-cleanup] {sid} has {msg_count} messages > {max_messages}, removing mapping")
+            cleaned += 1
+        else:
+            print(f"[session-cleanup] {sid} has {msg_count} messages <= {max_messages}, keeping")
+            remaining.append(s)
+
+    if cleaned > 0:
+        data["sessions"] = remaining
+        with open(sessions_file, "w") as f:
+            json.dump(data, f, ensure_ascii=False, indent=2)
+        print(f"[session-cleanup] Cleaned {cleaned} session(s), next message will create new session")
+    else:
+        print(f"[session-cleanup] All sessions are within limit ({max_messages} messages)")
+finally:
+    conn.close()
+PYEOF
 
 if [ "$CLEANED" -gt 0 ]; then
     echo "[session-cleanup] Cleaned $CLEANED session(s), next message will create new session"

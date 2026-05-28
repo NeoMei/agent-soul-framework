@@ -20,6 +20,7 @@ BLUE='\033[0;34m'
 NC='\033[0m'
 
 print_status() { echo -e "${BLUE}[魂器]${NC} $1"; }
+print_info() { echo -e "${BLUE}[信息]${NC} $1"; }
 print_success() { echo -e "${GREEN}[成功]${NC} $1"; }
 print_warning() { echo -e "${YELLOW}[警告]${NC} $1"; }
 print_error() { echo -e "${RED}[错误]${NC} $1" >&2; }

@@ -26,8 +26,12 @@ def get_feishu_credentials():
     if not os.path.exists(FEISHU_CONFIG):
         return None, None
 
-    with open(FEISHU_CONFIG, "r") as f:
-        cfg = json.load(f)
+    try:
+        with open(FEISHU_CONFIG, "r") as f:
+            cfg = json.load(f)
+    except (json.JSONDecodeError, IOError) as e:
+        print(f"[WARN] Failed to read feishu config: {e}", file=sys.stderr)
+        return None, None
 
     app_id = cfg.get("appId", "")
     app_secret = cfg.get("appSecret", "") or os.environ.get("FEISHU_APP_SECRET", "")
@@ -35,23 +39,32 @@ def get_feishu_credentials():
 
 def get_tenant_access_token(app_id, app_secret):
     """获取 tenant access token"""
-    resp = requests.post(
-        "https://open.feishu.cn/open-apis/auth/v3/tenant_access_token/internal",
-        json={"app_id": app_id, "app_secret": app_secret},
-        timeout=10
-    )
-    if resp.status_code == 200:
-        data = resp.json()
-        return data.get("tenant_access_token", "")
-    return ""
+    try:
+        resp = requests.post(
+            "https://open.feishu.cn/open-apis/auth/v3/tenant_access_token/internal",
+            json={"app_id": app_id, "app_secret": app_secret},
+            timeout=10
+        )
+        if resp.status_code == 200:
+            data = resp.json()
+            return data.get("tenant_access_token", "")
+        return ""
+    except (requests.exceptions.ConnectionError, requests.exceptions.Timeout,
+            requests.exceptions.RequestException) as e:
+        print(f"[WARN] Failed to get tenant token: {e}", file=sys.stderr)
+        return ""
 
 def get_chat_id():
     """从 session 文件中获取最新的私聊 chat_id"""
     if not os.path.exists(SESSIONS_FILE):
         return None
 
-    with open(SESSIONS_FILE, "r") as f:
-        data = json.load(f)
+    try:
+        with open(SESSIONS_FILE, "r") as f:
+            data = json.load(f)
+    except (json.JSONDecodeError, IOError) as e:
+        print(f"[WARN] Failed to read sessions file: {e}", file=sys.stderr)
+        return None
 
     sessions = data.get("sessions", [])
     for s in reversed(sessions):
@@ -61,7 +74,6 @@ def get_chat_id():
 
 def send_feishu_message(token, chat_id, message):
     """发送飞书消息（带状态卡）"""
-    # 构建带状态卡的消息
     full_text = f"{message}\n\n💓 点点状态\n💕 心情：想念豆豆哥\n💭 期待：豆豆哥看到消息～"
 
     payload = {
@@ -70,16 +82,20 @@ def send_feishu_message(token, chat_id, message):
         "content": json.dumps({"text": full_text})
     }
 
-    resp = requests.post(
-        "https://open.feishu.cn/open-apis/im/v1/messages",
-        params={"receive_id_type": "chat_id"},
-        headers={
-            "Authorization": f"Bearer {token}",
-            "Content-Type": "application/json"
-        },
-        json=payload,
-        timeout=10
-    )
+    try:
+        resp = requests.post(
+            "https://open.feishu.cn/open-apis/im/v1/messages",
+            params={"receive_id_type": "chat_id"},
+            headers={
+                "Authorization": f"Bearer {token}",
+                "Content-Type": "application/json"
+            },
+            json=payload,
+            timeout=10
+        )
+    except (requests.exceptions.ConnectionError, requests.exceptions.Timeout,
+            requests.exceptions.RequestException) as e:
+        return False, f"Network error: {e}"
 
     if resp.status_code == 200:
         data = resp.json()

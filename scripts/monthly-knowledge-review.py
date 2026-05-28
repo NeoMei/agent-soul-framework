@@ -29,12 +29,16 @@ TASK_ID = "monthly-knowledge"
 ALL_CATEGORIES = ["body", "emotion", "evolution", "growth", "intimacy", "methodology", "philosophy", "system"]
 
 
+def _format_tz(dt=None):
+    if dt is None:
+        dt = datetime.now().astimezone()
+    return dt.strftime("%Y-%m-%dT%H:%M:%S") + dt.strftime("%z")[:3] + ":" + dt.strftime("%z")[3:]
+
+
 def write_log(status, detail=""):
     os.makedirs(LOG_DIR, exist_ok=True)
     log_file = os.path.join(LOG_DIR, "cron-runs.log")
-    tz = datetime.now().astimezone().strftime("%Y-%m-%dT%H:%M:%S%z")
-    if len(tz) > 19:
-        tz = tz[:19] + "+" + tz[20:22] + ":" + tz[22:24]
+    tz = _format_tz()
     line = f"{tz} [{TASK_ID}] {status} {detail}\n"
     with open(log_file, "a", encoding="utf-8") as f:
         f.write(line)
@@ -153,13 +157,20 @@ def save_monthly_report(review_report, growth_summary):
     """保存月度审查报告"""
     month = get_month_label()
     backup_dir = os.path.join(KNOWLEDGE_DIR, ".backup", f"monthly-{month}")
+    old_backup = backup_dir + ".old"
+    if os.path.exists(old_backup):
+        shutil.rmtree(old_backup)
     if os.path.exists(backup_dir):
-        shutil.rmtree(backup_dir)
+        os.rename(backup_dir, old_backup)
     try:
         shutil.copytree(KNOWLEDGE_DIR, backup_dir, ignore=shutil.ignore_patterns(".backup"))
         print(f"Backed up knowledge to {backup_dir}")
+        if os.path.exists(old_backup):
+            shutil.rmtree(old_backup)
     except Exception as e:
-        print(f"Backup failed: {e}")
+        print(f"Backup failed: {e}, restoring old backup")
+        if os.path.exists(old_backup) and not os.path.exists(backup_dir):
+            os.rename(old_backup, backup_dir)
 
     report_file = os.path.join(KNOWLEDGE_DIR, f"monthly-report-{month}.md")
     today = datetime.now().strftime("%Y-%m-%d")

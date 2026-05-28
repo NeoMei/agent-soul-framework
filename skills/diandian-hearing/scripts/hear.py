@@ -40,8 +40,7 @@ def analyze_audio(file_path, context=""):
         dict: 包含 transcription, emotion, music_analysis 等
     """
     api_key = get_gemini_api_key()
-    url = f"{API_ENDPOINT}?key={api_key}"
-    
+
     with open(file_path, 'rb') as f:
         audio_base64 = base64.b64encode(f.read()).decode()
     
@@ -90,9 +89,12 @@ def analyze_audio(file_path, context=""):
     }
     
     req = urllib.request.Request(
-        url,
+        API_ENDPOINT,
         data=json.dumps(data).encode('utf-8'),
-        headers={'Content-Type': 'application/json'}
+        headers={
+            'Content-Type': 'application/json',
+            'x-goog-api-key': api_key
+        }
     )
     
     try:

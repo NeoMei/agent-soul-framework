@@ -34,7 +34,7 @@ degrade() {
     exit 1
   fi
 
-  python3 -c "import json; json.dump({'degraded':True,'model':'${fallback_model}','since':$(date +%s)}, open('${STATE_FILE}','w'))"
+  python3 -c "import json,sys; json.dump({'degraded':True,'model':sys.argv[1],'since':int(sys.argv[2])}, open(sys.argv[3],'w'))" "$fallback_model" "$(date +%s)" "$STATE_FILE"
   echo "Model degraded to: ${fallback_model}"
 
   # 尝试重启 opencode serve（只杀指定端口的进程）
@@ -53,7 +53,7 @@ restore() {
   echo "Attempting to restore primary model: ${PRIMARY_MODEL}"
 
   # 先标记为恢复中
-  python3 -c "import json; json.dump({'degraded':False,'model':'','since':0}, open('${STATE_FILE}','w'))"
+  python3 -c "import json,sys; json.dump({'degraded':False,'model':'','since':0}, open(sys.argv[1],'w'))" "$STATE_FILE"
 
   # 尝试重启 opencode serve 用主模型（只杀指定端口的进程）
   SERVE_PID=$(ss -tlnp 2>/dev/null | grep ":${OPENCODE_PORT} " | sed -n 's/.*pid=\([0-9]*\).*/\1/p')

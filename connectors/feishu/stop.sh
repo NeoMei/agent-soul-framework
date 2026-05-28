@@ -62,17 +62,16 @@ fi
 
 sleep 1
 
-# 使用 fuser 或 ss 替代 lsof（更广泛的系统兼容性）
-if command -v fuser &>/dev/null; then
-    if fuser ${PORT}/tcp &>/dev/null 2>&1; then
-        echo "端口 ${PORT} 仍被占用，强制释放..."
-        fuser -k ${PORT}/tcp 2>/dev/null
-    fi
-elif command -v ss &>/dev/null; then
-    if ss -tlnp | grep -q ":${PORT} "; then
-        echo "端口 ${PORT} 仍被占用，强制释放..."
-        PID=$(ss -tlnp | grep ":${PORT} " | sed -n 's/.*pid=\([0-9]*\).*/\1/p')
-        [ -n "$PID" ] && kill -9 $PID 2>/dev/null
+if ss -tlnp 2>/dev/null | grep -q ":${PORT} "; then
+    PID=$(ss -tlnp 2>/dev/null | grep ":${PORT} " | sed -n 's/.*pid=\([0-9]*\).*/\1/p')
+    if [ -n "$PID" ]; then
+        PROC_NAME=$(ps -p "$PID" -o comm= 2>/dev/null || echo "unknown")
+        echo "端口 ${PORT} 仍被占用 (PID: $PID, $PROC_NAME)，发送 SIGTERM..."
+        kill "$PID" 2>/dev/null
+        sleep 2
+        if kill -0 "$PID" 2>/dev/null; then
+            echo "进程 $PID 未响应 SIGTERM，跳过"
+        fi
     fi
 fi
 

@@ -30,58 +30,53 @@ def now_beijing():
     return datetime.now(timezone(timedelta(hours=8)))
 
 def find_recent_sessions(limit=5):
-    """从 conversations.db 找到最近活跃的会话"""
     if not CONVERSATIONS_DB.exists():
         return []
     import sqlite3
-    conn = sqlite3.connect(str(CONVERSATIONS_DB))
-    rows = conn.execute(
-        "SELECT DISTINCT session_id FROM conversations ORDER BY MAX(timestamp) DESC LIMIT ?",
-        (limit,)
-    ).fetchall()
-    conn.close()
+    with sqlite3.connect(str(CONVERSATIONS_DB)) as conn:
+        rows = conn.execute(
+            "SELECT session_id FROM conversations GROUP BY session_id ORDER BY MAX(timestamp) DESC LIMIT ?",
+            (limit,)
+        ).fetchall()
     return [r[0] for r in rows]
 
 
+def _escape_like(s):
+    return s.replace("\\", "\\\\").replace("%", "\\%").replace("_", "\\_")
+
+
 def count_tool_calls(session_id):
-    """统计会话中的工具调用次数（从 conversations.db）"""
     count = 0
     try:
-        import sqlite3
-        conn = sqlite3.connect(str(CONVERSATIONS_DB))
-        rows = conn.execute(
-            "SELECT content FROM conversations WHERE session_id LIKE ?",
-            (f"%{session_id}%",)
-        ).fetchall()
-        for (content,) in rows:
-            if content:
-                # 检查工具调用特征：toolCall, Bash, exec, function
-                for marker in ['"toolCall"', '"toolName"', 'call_', 'toolResult', 'Bash(', 'exec(']:
-                    count += content.count(marker)
-        conn.close()
+        with sqlite3.connect(str(CONVERSATIONS_DB)) as conn:
+            rows = conn.execute(
+                "SELECT content FROM conversations WHERE session_id = ?",
+                (session_id,)
+            ).fetchall()
+            for (content,) in rows:
+                if content:
+                    for marker in ['"toolCall"', '"toolName"', 'call_', 'toolResult', 'Bash(', 'exec(']:
+                        count += content.count(marker)
     except Exception:
         pass
     return count
 
 def extract_workflow_summary(session_id):
-    """从 conversations.db 提取会话工作流摘要"""
-    import sqlite3
     messages = []
     try:
-        conn = sqlite3.connect(str(CONVERSATIONS_DB))
-        rows = conn.execute(
-            "SELECT role, content FROM conversations WHERE session_id LIKE ? ORDER BY timestamp LIMIT 50",
-            (f"%{session_id}%",)
-        ).fetchall()
-        for role, content in rows:
-            if content:
-                if role == "user":
-                    messages.append(f"用户: {content[:200]}")
-                elif role == "assistant":
-                    messages.append(f"助手: {content[:300]}")
-                elif role == "tool":
-                    messages.append(f"工具: {content[:200]}")
-        conn.close()
+        with sqlite3.connect(str(CONVERSATIONS_DB)) as conn:
+            rows = conn.execute(
+                "SELECT role, content FROM conversations WHERE session_id = ? ORDER BY timestamp LIMIT 50",
+                (session_id,)
+            ).fetchall()
+            for role, content in rows:
+                if content:
+                    if role == "user":
+                        messages.append(f"用户: {content[:200]}")
+                    elif role == "assistant":
+                        messages.append(f"助手: {content[:300]}")
+                    elif role == "tool":
+                        messages.append(f"工具: {content[:200]}")
     except Exception:
         pass
     return messages[-20:]

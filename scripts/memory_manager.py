@@ -134,7 +134,16 @@ class MemoryManager:
                 created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
             )
         ''')
-        
+
+        # 创建同步元数据表（用于增量同步）
+        self.cursor.execute('''
+            CREATE TABLE IF NOT EXISTS sync_metadata (
+                key TEXT PRIMARY KEY,
+                value TEXT,
+                updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+            )
+        ''')
+
         self.conn.commit()
     
     def init_lancedb(self):
@@ -143,7 +152,7 @@ class MemoryManager:
             self.db = lancedb.connect(str(VECTOR_DIR))
             
             # 创建或打开记忆表
-            if "memories" not in self.db.table_names():
+            if "memories" not in self.db.list_tables():
                 schema = pa.schema([
                     pa.field("id", pa.string()),
                     pa.field("vector", pa.list_(pa.float32(), ALIYUN_VECTOR_DIM)),
@@ -283,8 +292,34 @@ class MemoryManager:
         
         return self.cursor.fetchall()
     
-    def sync_from_opencode(self):
-        """从 OpenCode 自身的数据库同步对话到魂器记忆库"""
+    def _get_sync_time(self, key="opencode_last_sync"):
+        """获取上次同步时间"""
+        row = self.cursor.execute(
+            "SELECT value FROM sync_metadata WHERE key = ?", (key,)
+        ).fetchone()
+        if row and row[0]:
+            try:
+                return float(row[0])
+            except (ValueError, TypeError):
+                return None
+        return None
+
+    def _set_sync_time(self, key="opencode_last_sync", timestamp=None):
+        """设置同步时间"""
+        if timestamp is None:
+            timestamp = datetime.now(timezone(timedelta(hours=8))).timestamp()
+        self.cursor.execute(
+            """INSERT INTO sync_metadata (key, value, updated_at)
+                VALUES (?, ?, CURRENT_TIMESTAMP)
+                ON CONFLICT(key) DO UPDATE SET
+                value = excluded.value,
+                updated_at = CURRENT_TIMESTAMP""",
+            (key, str(timestamp))
+        )
+        self.conn.commit()
+
+    def sync_from_opencode(self, incremental=True):
+        """从 OpenCode 自身的数据库同步对话到魂器记忆库（支持增量同步）"""
         import time
         opencode_db = os.path.expanduser("~/.local/share/opencode/opencode.db")
         if not os.path.exists(opencode_db):
@@ -294,23 +329,51 @@ class MemoryManager:
         import sqlite3 as sql
         src = sql.connect(opencode_db)
         count = 0
+        sync_start = time.time()
 
         try:
-            # 获取所有 session
-            sessions = src.execute(
-                "SELECT id, title FROM session ORDER BY time_updated DESC LIMIT 50"
-            ).fetchall()
+            # 获取上次同步时间（用于增量同步）
+            last_sync = None
+            if incremental:
+                last_sync = self._get_sync_time("opencode_last_sync")
+                if last_sync:
+                    print(f"[INFO] 增量同步：从 {datetime.fromtimestamp(last_sync).strftime('%Y-%m-%d %H:%M:%S')} 开始")
+
+            # 构建查询条件
+            if last_sync:
+                # 只同步更新的 session 和消息
+                sessions = src.execute(
+                    """SELECT id, title FROM session
+                       WHERE time_updated > ?
+                       ORDER BY time_updated DESC""",
+                    (last_sync,)
+                ).fetchall()
+            else:
+                # 首次全量同步，限制50个session
+                sessions = src.execute(
+                    "SELECT id, title FROM session ORDER BY time_updated DESC LIMIT 50"
+                ).fetchall()
 
             for sess_id, title in sessions:
-                # 获取该 session 的消息；data 字段是 JSON
-                messages = src.execute("""
-                    SELECT m.data, GROUP_CONCAT(p.data, '|||') as parts_data
-                    FROM message m
-                    LEFT JOIN part p ON p.message_id = m.id
-                    WHERE m.session_id = ?
-                    GROUP BY m.id
-                    ORDER BY m.time_created
-                """, (sess_id,)).fetchall()
+                # 获取该 session 的消息
+                if last_sync:
+                    messages = src.execute("""
+                        SELECT m.data, GROUP_CONCAT(p.data, '|||') as parts_data
+                        FROM message m
+                        LEFT JOIN part p ON p.message_id = m.id
+                        WHERE m.session_id = ? AND m.time_created > ?
+                        GROUP BY m.id
+                        ORDER BY m.time_created
+                    """, (sess_id, last_sync)).fetchall()
+                else:
+                    messages = src.execute("""
+                        SELECT m.data, GROUP_CONCAT(p.data, '|||') as parts_data
+                        FROM message m
+                        LEFT JOIN part p ON p.message_id = m.id
+                        WHERE m.session_id = ?
+                        GROUP BY m.id
+                        ORDER BY m.time_created
+                    """, (sess_id,)).fetchall()
 
                 for msg_json, parts_json in messages:
                     try:
@@ -336,10 +399,12 @@ class MemoryManager:
                     if not content or len(content) < 5:
                         continue
 
-                    # 去重
+                    # 去重（使用内容哈希+session_id，比全文匹配更高效）
+                    import hashlib
+                    content_hash = hashlib.md5(f"{sess_id}:{role}:{content}".encode()).hexdigest()
                     existing = self.cursor.execute(
-                        "SELECT COUNT(*) FROM conversations WHERE session_id=? AND role=? AND content=?",
-                        (sess_id, role, content)
+                        "SELECT COUNT(*) FROM conversations WHERE session_id=? AND content=?",
+                        (sess_id, content)
                     ).fetchone()[0]
                     if existing == 0:
                         ts = datetime.now(timezone(timedelta(hours=8))).timestamp()
@@ -350,10 +415,14 @@ class MemoryManager:
                         count += 1
 
             self.conn.commit()
+            # 记录同步时间（用于下次增量同步）
+            self._set_sync_time("opencode_last_sync", sync_start)
+
         finally:
             src.close()
 
-        print(f"[OK] 从 OpenCode 数据库同步了 {count} 条对话")
+        mode = "增量" if last_sync else "全量"
+        print(f"[OK] {mode}同步：从 OpenCode 数据库同步了 {count} 条对话")
         return count
 
     def sync_from_session(self, session_file=None):

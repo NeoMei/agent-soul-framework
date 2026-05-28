@@ -58,13 +58,13 @@ def generate_article():
         f.write(prompt)
     
     try:
+        with open(prompt_file, "r", encoding="utf-8") as pf:
+            prompt_text = pf.read()
         result = subprocess.run(
-            f"cat {prompt_file} | opencode run --dir {PROJECT_DIR}",
-            capture_output=True, text=True, timeout=300, shell=True
+            ["opencode", "run", "--dir", PROJECT_DIR],
+            input=prompt_text, capture_output=True, text=True, timeout=300
         )
-        # 如果 opencode run 不可用，使用简单的回退方案
         if result.returncode != 0 or not result.stdout.strip():
-            # 回退：使用环境变量中的 Kimi API Key 直接调用
             return generate_article_fallback(prompt)
         return result.stdout
     except Exception as e:

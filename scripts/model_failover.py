@@ -102,9 +102,30 @@ def load_config():
 
 
 def save_config(config):
-    """保存 opencode 配置"""
-    with open(CONFIG_PATH, "w", encoding="utf-8") as f:
-        json.dump(config, f, indent=2, ensure_ascii=False)
+    """保存 opencode 配置（原子写入 + 自动备份）"""
+    import shutil
+
+    # 1. 备份当前配置
+    backup_path = CONFIG_PATH.with_suffix(f".json.backup.{datetime.now().strftime('%Y%m%d%H%M%S')}")
+    if CONFIG_PATH.exists():
+        shutil.copy2(CONFIG_PATH, backup_path)
+        # 只保留最近5个备份
+        backups = sorted(CONFIG_PATH.parent.glob("*.json.backup.*"), key=lambda p: p.stat().st_mtime)
+        for old in backups[:-5]:
+            old.unlink(missing_ok=True)
+
+    # 2. 原子写入：先写临时文件，再rename
+    temp_path = CONFIG_PATH.with_suffix(".json.tmp")
+    try:
+        with open(temp_path, "w", encoding="utf-8") as f:
+            json.dump(config, f, indent=2, ensure_ascii=False)
+            f.flush()
+            os.fsync(f.fileno())
+        os.replace(temp_path, CONFIG_PATH)
+    except Exception:
+        if temp_path.exists():
+            temp_path.unlink(missing_ok=True)
+        raise
 
 
 def get_password():
