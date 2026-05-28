@@ -14,8 +14,11 @@ memory/.queue/
 memory/.locks/
 memory/.knowledge_session.json
 memory/SESSION-STATE.md
-memory/cron-output/
 memory/heartbeat_state.md
+memory/index_state.json
+memory/.model_failover_state.json
+memory/cron-output/
+heartbeat/heartbeat_tasks.json
 memory/long-term/.dreams/
 memory/spontaneous_ideas.md
 scripts/pre_check_doudou.py
