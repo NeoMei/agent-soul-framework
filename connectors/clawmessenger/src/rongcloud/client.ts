@@ -85,20 +85,30 @@ export class RongCloudClient {
   }
 
   private handleReceivedMessage(message: RongCloudMessage): void {
-    // 过滤离线消息
-    if (message.isOffLineMessage) return;
+    try {
+      // 过滤离线消息
+      if (message.isOffLineMessage) return;
 
-    // 过滤自己发送的消息
-    if (message.messageDirection === 1) return;
-    if (message.senderUserId === this.config.accountId) return;
+      // 过滤自己发送的消息
+      if (message.messageDirection === 1) return;
+      if (message.senderUserId === this.config.accountId) return;
 
-    // 通过发送缓存过滤
-    if (message.messageUId && this.sentMessageUIds.has(message.messageUId)) {
-      return;
+      // 通过发送缓存过滤
+      if (message.messageUId && this.sentMessageUIds.has(message.messageUId)) {
+        return;
+      }
+
+      this.log.info(`收到消息: type=${message.messageType}, from=${message.senderUserId}`);
+      
+      // 异步处理消息，避免阻塞
+      Promise.resolve().then(() => {
+        this.messageHandler?.(message);
+      }).catch((err: any) => {
+        this.log.error(`消息处理异常: ${err.message}`);
+      });
+    } catch (err: any) {
+      this.log.error(`handleReceivedMessage 异常: ${err.message}`);
     }
-
-    this.log.info(`收到消息: type=${message.messageType}, from=${message.senderUserId}`);
-    this.messageHandler?.(message);
   }
 
   async sendMessage(targetId: string, content: string, conversationType: number = 1): Promise<void> {
