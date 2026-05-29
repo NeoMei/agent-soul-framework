@@ -6,7 +6,8 @@
   "main": "dist/index.js",
   "types": "dist/index.d.ts",
   "bin": {
-    "opencode-clawmessenger": "bin/opencode-clawmessenger"
+    "opencode-clawmessenger": "bin/opencode-clawmessenger",
+    "opencode-clawmessenger-setup": "bin/setup.js"
   },
   "scripts": {
     "build": "tsc",

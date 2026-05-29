@@ -26,6 +26,8 @@ export interface ClawMessengerConfig {
   token: string;
   /** 账号 ID */
   accountId: string;
+  /** 服务端地址 */
+  serverUrl: string;
   /** OpenCode 服务地址 */
   opencodeUrl: string;
   /** OpenCode 工作目录 */
