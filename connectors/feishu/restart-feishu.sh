@@ -50,50 +50,51 @@ FEISHU_CMD=$(resolve_opencode_feishu) || {
 echo "🔄 准备重启 opencode-feishu..."
 
 # ── 1. 获取旧实例 PID（排除当前 shell 和 grep）──
-OLD_PID=$(pgrep -f "opencode-feishu start" | grep -v "$$" | head -1)
+# 匹配 opencode-feishu start 或 cli.js start start（旧版启动方式）
+OLD_PIDS=$(pgrep -f "opencode-feishu start|cli\.js start start" | grep -v "$$" || true)
+OLD_PID=$(echo "$OLD_PIDS" | head -1)
 
-# ── 2. 在后台子 shell 中延迟启动新实例 ──
-# 关键点：
-#   • nohup + & 让新进程脱离当前终端
-#   • sleep 2 给旧进程时间发送"正在重启"的回复
-#   • 即使当前 shell 被 kill，新进程也能继续
-(
-    sleep 2
-    cd "$PROJECT_DIR"
-
-    # 确保 opencode serve 还在运行
-    if ! curl -s http://localhost:$PORT/session >/dev/null 2>&1; then
-        echo "⚠️  OpenCode serve 未运行，尝试启动..."
-        nohup opencode serve --port "$PORT" > /tmp/opencode-serve.log 2>&1 &
-        sleep 3
-    fi
-
-    # 启动新的 opencode-feishu
-    nohup $FEISHU_CMD start --daemon > /tmp/opencode-feishu-restart.log 2>&1 &
-    NEW_PID=$!
-
-    # 等待新进程就绪
-    sleep 3
-    if kill -0 "$NEW_PID" 2>/dev/null; then
-        echo "✅ 新 opencode-feishu 已启动 (PID: $NEW_PID)"
-    else
-        echo "❌ 新 opencode-feishu 启动失败，查看日志: /tmp/opencode-feishu-restart.log" >&2
-        exit 1
-    fi
-) &
-
-# ── 3. 给新进程启动时间，然后停止旧实例 ──
-sleep 4
-
+# ── 2. 优雅关闭旧实例 ──
 if [ -n "$OLD_PID" ]; then
-    echo "🛑 停止旧实例 (PID: $OLD_PID)..."
+    echo "🛑 正在优雅关闭旧实例 (PID: $OLD_PID)..."
     kill "$OLD_PID" 2>/dev/null || true
-    sleep 1
-    # 如果还在，强制 SIGKILL
+    
+    # 等待旧实例退出（最多 5 秒）
+    WAIT=0
+    while [ $WAIT -lt 5 ] && kill -0 "$OLD_PID" 2>/dev/null; do
+        sleep 1
+        WAIT=$((WAIT + 1))
+    done
+    
+    # 如果还在，强制终止
     if kill -0 "$OLD_PID" 2>/dev/null; then
         echo "   旧实例未响应，强制终止..."
         kill -9 "$OLD_PID" 2>/dev/null || true
+        sleep 1
     fi
+    echo "   旧实例已关闭"
+fi
+
+# ── 3. 确保 opencode serve 还在运行 ──
+if ! curl -s http://localhost:$PORT/session >/dev/null 2>&1; then
+    echo "⚠️  OpenCode serve 未运行，尝试启动..."
+    nohup opencode serve --port "$PORT" > /tmp/opencode-serve.log 2>&1 &
+    sleep 3
+fi
+
+# ── 4. 启动新实例 ──
+echo "🚀 启动新的 opencode-feishu..."
+cd "$PROJECT_DIR"
+nohup $FEISHU_CMD start --daemon > /tmp/opencode-feishu-restart.log 2>&1 &
+NEW_PID=$!
+
+# 等待新进程就绪
+sleep 3
+if kill -0 "$NEW_PID" 2>/dev/null; then
+    echo "✅ 新 opencode-feishu 已启动 (PID: $NEW_PID)"
+else
+    echo "❌ 新 opencode-feishu 启动失败，查看日志: /tmp/opencode-feishu-restart.log" >&2
+    exit 1
 fi
 
 echo "✅ opencode-feishu 重启完成"
