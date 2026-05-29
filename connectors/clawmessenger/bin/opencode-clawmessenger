@@ -1,0 +1,7 @@
+#!/usr/bin/env node
+import { startClawMessenger } from '../src/index.js';
+
+startClawMessenger().catch((err) => {
+  console.error('❌ 启动失败:', err);
+  process.exit(1);
+});
