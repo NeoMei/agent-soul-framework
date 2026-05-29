@@ -101,15 +101,32 @@ export async function startClawMessenger(): Promise<void> {
   log.info('✅ opencode-clawmessenger 已启动');
   log.info('等待消息...');
 
-  // 7. 保持运行
+  // 7. 心跳保活
+  const heartbeatInterval = setInterval(() => {
+    if (!rongClient['isConnected']) {
+      log.warn('连接断开，尝试重连...');
+      rongClient.connect(handleMessage).catch((err: any) => {
+        log.error(`重连失败: ${err.message}`);
+      });
+    }
+  }, 30000); // 每30秒检查一次
+
+  // 8. 保持进程运行（防止 Node.js 退出）
+  setInterval(() => {
+    // 空循环保持进程活跃
+  }, 1000);
+
+  // 9. 保持运行
   process.on('SIGINT', () => {
     log.info('正在关闭...');
+    clearInterval(heartbeatInterval);
     rongClient.disconnect();
     process.exit(0);
   });
 
   process.on('SIGTERM', () => {
     log.info('正在关闭...');
+    clearInterval(heartbeatInterval);
     rongClient.disconnect();
     process.exit(0);
   });
