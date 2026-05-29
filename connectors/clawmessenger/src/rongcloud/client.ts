@@ -1,8 +1,8 @@
 import './env-polyfill.js';
-import RongIMLibModule from '@rongcloud/imlib-next';
+import * as RongIMLibModule from '@rongcloud/imlib-next';
 import type { Logger } from '../core/logger.js';
 
-const RongIMLib = (RongIMLibModule as any).default || RongIMLibModule;
+const RongIMLib: any = RongIMLibModule;
 
 export interface RongCloudMessage {
   messageType: string;
