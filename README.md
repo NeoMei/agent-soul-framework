@@ -34,7 +34,7 @@
 |------|--------------|---------|
 | **运行时地狱** | Python venv + pip，`pyarrow` / `lancedb` 编译是玄学 | 管理脚本用 Python stdlib（`sqlite3` 内置），引擎层交给 opencode（`npm install` 搞定） |
 | **LLM 单点故障** | 硬编码单个 API endpoint，key 过期 = 全线瘫痪 | 通过 opencode 调度，provider 热切换（Kimi → DeepSeek → Gemini，一行配置） |
-| **升级毁灭** | 改 `openclaw.json` 影响所有项目 | 每个项目独立 `.opencode/config.json`，互不干扰 |
+| **升级毁灭** | 改 `openclaw.json` 影响所有项目 | 每个项目独立 `.opencode/opencode.json`，互不干扰 |
 | **记忆 = 全量 dump** | jsonl 文件遍历，无索引，搜索 = 全表扫描 | SQLite + FTS5 全文索引 + LanceDB 语义向量，毫秒级混合检索 |
 | **知识靠手写** | 手动整理知识卡，AI 不会自己学 | 每日 → 每周 → 每月三层自动知识提取管线 |
 | **飞书是唯一 Channel** | 单一通道，换企微要重写 | 飞书 + 企业微信双通道就绪，Channel 层架构天然支持扩展 |
@@ -308,7 +308,7 @@ crontab -e
 
 ```
 agent-soul-framework/
-├── .opencode/              # OpenCode 引擎配置（prompt.md + config.json）
+├── .opencode/              # OpenCode 引擎配置（prompt.md + opencode.json）
 ├── soul/                   # 灵魂定义 — 身份 · 性格 · 用户信息
 │   ├── IDENTITY.md         # 容貌 / 声音 / 身体
 │   ├── SOUL.md             # 核心原则 / 铁律 / 行为模式

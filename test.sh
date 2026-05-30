@@ -16,7 +16,7 @@ if [ -d .venv ]; then
     source .venv/bin/activate
 fi
 
-# 方法1：使用 opencode . 启动项目模式（会加载 .opencode/config.json）
+# 方法1：使用 opencode . 启动项目模式（会加载 .opencode/opencode.json）
 echo ""
 echo "方法1：启动交互式 TUI（推荐）"
 echo "  cd ~/agent-soul-framework"
