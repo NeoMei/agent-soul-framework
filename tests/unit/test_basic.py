@@ -29,7 +29,7 @@ class TestProjectStructure(unittest.TestCase):
             self.assertTrue((PROJECT_DIR / "soul" / file_name).exists(), f"缺少灵魂文件: {file_name}")
     
     def test_opencode_config(self):
-        self.assertTrue((PROJECT_DIR / ".opencode" / "config.json").exists())
+        self.assertTrue((PROJECT_DIR / ".opencode" / "opencode.json").exists())
         self.assertTrue((PROJECT_DIR / ".opencode" / "prompt.md").exists())
     
     def test_env_file(self):

@@ -29,7 +29,7 @@ from datetime import datetime, timezone, timedelta
 from pathlib import Path
 
 PROJECT_DIR = Path(__file__).parent.parent
-CONFIG_PATH = PROJECT_DIR / ".opencode" / "config.json"
+CONFIG_PATH = PROJECT_DIR / ".opencode" / "opencode.json"
 STATE_PATH = PROJECT_DIR / "memory" / ".model_failover_state.json"
 LOG_PATH = PROJECT_DIR / "memory" / ".model_failover.log"
 

@@ -49,8 +49,8 @@ logs/
 !/knowledge/*/INDEX.md.example
 
 # OpenCode 配置 — 示例文件可提交
-.opencode/config.json
-!.opencode/config.json.example
+.opencode/opencode.json
+!.opencode/opencode.json.example
 !.opencode/prompt.md.example
 .opencode/prompt.md
 .claude/

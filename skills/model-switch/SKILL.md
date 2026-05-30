@@ -24,7 +24,7 @@ AUTH="Basic $(echo -n "opencode:$OPENCODE_SERVER_PASSWORD" | base64)"
 ### 1. 查看当前模型
 
 ```bash
-python3 -c "import json; print(json.load(open('.opencode/config.json')).get('model','未设置'))"
+python3 -c "import json; print(json.load(open('.opencode/opencode.json')).get('model','未设置'))"
 ```
 
 ### 2. 列出已连接的模型
@@ -45,12 +45,12 @@ for p in d.get('all',[]):
 
 ### 3. 切换模型
 
-直接编辑 `.opencode/config.json` 文件：
+直接编辑 `.opencode/opencode.json` 文件：
 
 ```bash
 python3 -c "
 import json
-p = '.opencode/config.json'
+p = '.opencode/opencode.json'
 c = json.load(open(p))
 c['model'] = 'provider-id/model-id'
 json.dump(c, open(p, 'w'), indent=2, ensure_ascii=False)
