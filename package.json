@@ -1,6 +1,6 @@
 {
   "name": "@neomei/agent-soul",
-  "version": "4.2.1",
+  "version": "4.2.2",
   "description": "魂器 — 基于 OpenCode 的 AI Agent 管理层框架。持久记忆 · 自主学习 · 多端部署 · 心跳自治",
   "type": "module",
   "main": "dist/index.js",

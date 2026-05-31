@@ -34,7 +34,7 @@ SEARCH_DIRS = [
 
 # 排除的文件
 EXCLUDE_PATTERNS = [
-    "*.db", "*.sqlite", "*.sqlite3", "*.lance", "*.bin",
+    "*.db", "*.sqlite", "*.sqlite3", "*.bin",
     "*.jpg", "*.jpeg", "*.png", "*.gif", "*.wav", "*.mp3",
     "__pycache__", ".git", ".venv", "node_modules",
 ]

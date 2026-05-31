@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """
 Memory Manager - 魂器记忆管理系统
-支持：SQLite + LanceDB向量存储 + 阿里云百炼Embedding模型
+支持：SQLite + ChromaDB向量存储 + 阿里云百炼Embedding模型
 """
 
 import os
@@ -23,13 +23,11 @@ if venv_path.exists():
             break
 
 try:
-    import lancedb
-    import pyarrow as pa
-    import numpy as np
-    LANCEDB_AVAILABLE = True
+    import chromadb
+    CHROMADB_AVAILABLE = True
 except ImportError:
-    LANCEDB_AVAILABLE = False
-    print("[WARN] LanceDB not available")
+    CHROMADB_AVAILABLE = False
+    print("[WARN] ChromaDB not available")
 
 PROJECT_DIR = Path(__file__).parent.parent
 MEMORY_DIR = PROJECT_DIR / "memory"
@@ -94,11 +92,11 @@ class MemoryManager:
         self.init_sqlite()
         self.embedding_client = AliyunEmbeddingClient()
         
-        if LANCEDB_AVAILABLE:
-            self.init_lancedb()
+        if CHROMADB_AVAILABLE:
+            self.init_chromadb()
         else:
-            self.db = None
-            self.table = None
+            self.chroma_client = None
+            self.collection = None
     
     def init_dirs(self):
         """初始化目录结构"""
@@ -146,29 +144,22 @@ class MemoryManager:
 
         self.conn.commit()
     
-    def init_lancedb(self):
-        """初始化 LanceDB 向量数据库"""
+    def init_chromadb(self):
+        """初始化 ChromaDB 向量数据库"""
         try:
-            self.db = lancedb.connect(str(VECTOR_DIR))
+            self.chroma_client = chromadb.PersistentClient(path=str(VECTOR_DIR))
             
-            # 创建或打开记忆表
-            if "memories" not in self.db.list_tables():
-                schema = pa.schema([
-                    pa.field("id", pa.string()),
-                    pa.field("vector", pa.list_(pa.float32(), ALIYUN_VECTOR_DIM)),
-                    pa.field("text", pa.string()),
-                    pa.field("category", pa.string()),
-                    pa.field("timestamp", pa.string())
-                ])
-                self.table = self.db.create_table("memories", schema=schema)
-            else:
-                self.table = self.db.open_table("memories")
+            # 创建或打开记忆 collection
+            self.collection = self.chroma_client.get_or_create_collection(
+                name="memories",
+                metadata={"description": "魂器记忆向量存储"}
+            )
             
-            print("[OK] LanceDB initialized")
+            print("[OK] ChromaDB initialized")
         except Exception as e:
-            print(f"[WARN] LanceDB initialization failed: {e}")
-            self.db = None
-            self.table = None
+            print(f"[WARN] ChromaDB initialization failed: {e}")
+            self.chroma_client = None
+            self.collection = None
     
     def save_conversation(self, session_id, role, content):
         """保存对话记录"""
@@ -204,20 +195,22 @@ class MemoryManager:
         self.conn.commit()
         memory_id = self.cursor.lastrowid
         
-        # 保存到 LanceDB
-        if LANCEDB_AVAILABLE and self.table is not None:
+        # 保存到 ChromaDB
+        if CHROMADB_AVAILABLE and self.collection is not None:
             try:
                 embedding = self.embedding_client.get_embedding(content)
                 if embedding:
-                    self.table.add([{
-                        "id": f"mem_{memory_id}",
-                        "vector": embedding,
-                        "text": content,
-                        "category": category,
-                        "timestamp": datetime.now(timezone(timedelta(hours=8))).isoformat()
-                    }])
+                    self.collection.add(
+                        ids=[f"mem_{memory_id}"],
+                        embeddings=[embedding],
+                        documents=[content],
+                        metadatas=[{
+                            "category": category,
+                            "timestamp": datetime.now(timezone(timedelta(hours=8))).isoformat()
+                        }]
+                    )
             except Exception as e:
-                print(f"[WARN] Failed to save to LanceDB: {e}")
+                print(f"[WARN] Failed to save to ChromaDB: {e}")
         
         # 保存到文件系统
         self._save_memory_to_file(content, category, importance)
@@ -245,24 +238,22 @@ class MemoryManager:
     
     def search_memories(self, query, category=None, limit=5):
         """语义搜索记忆"""
-        if LANCEDB_AVAILABLE and self.table is not None:
+        if CHROMADB_AVAILABLE and self.collection is not None:
             try:
                 query_embedding = self.embedding_client.get_embedding(query)
                 
                 if query_embedding:
-                    if category:
-                        results = self.table.search(query_embedding)\
-                            .where(f"category = '{category}'")\
-                            .limit(limit)\
-                            .to_pandas()
-                    else:
-                        results = self.table.search(query_embedding)\
-                            .limit(limit)\
-                            .to_pandas()
+                    where_filter = {"category": category} if category else None
+                    results = self.collection.query(
+                        query_embeddings=[query_embedding],
+                        n_results=limit,
+                        where=where_filter
+                    )
                     
-                    return results['text'].tolist()
+                    documents = results.get('documents', [[]])[0]
+                    return documents if documents else []
             except Exception as e:
-                print(f"[WARN] LanceDB search failed: {e}")
+                print(f"[WARN] ChromaDB search failed: {e}")
         
         # 回退到 SQLite 搜索
         if category:
