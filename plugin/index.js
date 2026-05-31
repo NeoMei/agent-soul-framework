@@ -37,8 +37,6 @@ function saveMessage(sessionID, role, content) {
   try {
     // Node.js 直写 SQLite — 零开销
     const Database = require('better-sqlite3');
-    const path = require('path');
-    const PROJECT_DIR = path.resolve(__dirname, '..');
     const DB_PATH = path.join(PROJECT_DIR, 'memory', 'short-term', 'conversations.db');
     require('fs').mkdirSync(path.dirname(DB_PATH), { recursive: true });
     const db = new Database(DB_PATH);
@@ -52,6 +50,19 @@ function saveMessage(sessionID, role, content) {
   } catch {}
 }
 
+// 插件元数据（与 manifest.json 保持一致）
+export const meta = {
+  name: 'hunqi-plugin',
+  version: '1.0.0',
+  description: '魂器 OpenCode 插件 — 自动注入灵魂 + 保存对话',
+  hooks: [
+    'experimental.chat.system.transform',
+    'chat.message',
+    'session.end'
+  ]
+};
+
+// 默认导出：OpenCode 插件入口
 export default function HunqiPlugin(ctx) {
   return {
     /** 会话开始 / compact 后注入灵魂（已注入则跳过） */
