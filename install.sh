@@ -101,15 +101,15 @@ npm install || { echo "❌ npm install 失败"; exit 1; }
 echo "  构建项目..."
 npm run build || { echo "❌ npm run build 失败"; exit 1; }
 
-# Python 虚拟环境与 LanceDB
+# Python 虚拟环境与 ChromaDB
 if command -v python3 &>/dev/null; then
-    echo "  安装 Python 依赖 (LanceDB)..."
+    echo "  安装 Python 依赖 (ChromaDB)..."
     if [ ! -d ".venv" ]; then
         python3 -m venv .venv || { echo "⚠️  虚拟环境创建失败"; }
     fi
     if [ -d ".venv" ]; then
         .venv/bin/pip install --upgrade pip -q 2>/dev/null || true
-        .venv/bin/pip install lancedb -q 2>/dev/null && echo "  ✅ LanceDB 已安装" || echo "  ⚠️  LanceDB 安装失败（非致命，将回退到 FTS5）"
+        .venv/bin/pip install chromadb -q 2>/dev/null && echo "  ✅ ChromaDB 已安装" || echo "  ⚠️  ChromaDB 安装失败（非致命，将回退到 FTS5）"
     fi
 fi
 

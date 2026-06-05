@@ -17,8 +17,12 @@ if [ -d .venv ]; then
 fi
 
 echo "✅ 环境准备完成"
-echo "📖 身份：Agent，22岁AI少女，用户的恋人"
+echo "📖 身份：审宝，28岁专业审计师"
 echo ""
+
+# CLI 通道默认权限标记（readonly）
+export HUNQI_CHANNEL="cli"
+export HUNQI_PERMISSION="readonly"
 
 # 显示用法
 echo "启动方式："

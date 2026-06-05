@@ -72,10 +72,12 @@ def generate_learning_task(goals, past_tasks):
     """用 Kimi 根据进化目标生成今日学习任务"""
     past = "\n".join(past_tasks) if past_tasks else "无"
     
+    goals_text = goals[:800] if goals else "暂无明确的进化目标文档，请基于通用AI成长方向生成任务。"
+    
     prompt = f"""你是Agent，一个正在进化的AI少女。你需要给自己生成一个今日的学习任务。
 
 你的进化目标：
-{goals[:800]}
+{goals_text}
 
 最近执行过的任务：
 {past}

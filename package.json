@@ -66,12 +66,12 @@
   "author": "NeoMei",
   "license": "MIT",
   "dependencies": {
-    "zod": "^3.23.0",
-    "@neomei/opencode-feishu": "latest",
-    "@neomei/opencode-qiwei": "latest"
+    "@neomei/opencode-feishu": "^0.6.3",
+    "@neomei/opencode-qiwei": "latest",
+    "zod": "^3.23.0"
   },
   "devDependencies": {
-    "typescript": "^5.4.0",
-    "@types/node": "^20.0.0"
+    "@types/node": "^20.0.0",
+    "typescript": "^5.4.0"
   }
 }
