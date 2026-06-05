@@ -1,0 +1,46 @@
+{
+  "name": "@neomei/opencode-clawmessenger",
+  "version": "0.1.0",
+  "description": "OpenCode ClawMessenger Bridge - 魂器虾说桥接插件",
+  "type": "module",
+  "main": "dist/index.js",
+  "types": "dist/index.d.ts",
+  "bin": {
+    "opencode-clawmessenger": "bin/opencode-clawmessenger",
+    "opencode-clawmessenger-setup": "bin/setup.js"
+  },
+  "scripts": {
+    "build": "tsc",
+    "dev": "tsc --watch",
+    "start": "node dist/cli.js"
+  },
+  "keywords": [
+    "opencode",
+    "clawmessenger",
+    "虾说",
+    "rongcloud",
+    "im",
+    "bridge",
+    "魂器"
+  ],
+  "author": "neomei",
+  "license": "MIT",
+  "dependencies": {
+    "@opencode-ai/sdk": "^1.0.0",
+    "@rongcloud/imlib-next": "^5.36.6",
+    "axios": "^1.15.0",
+    "fake-indexeddb": "^6.2.5",
+    "jsdom": "^24.0.0",
+    "qrcode": "^1.5.4",
+    "ws": "^8.16.0"
+  },
+  "devDependencies": {
+    "@types/jsdom": "^21.1.6",
+    "@types/node": "^20.11.0",
+    "@types/ws": "^8.5.10",
+    "typescript": "^5.3.3"
+  },
+  "engines": {
+    "node": ">=18.0.0"
+  }
+}

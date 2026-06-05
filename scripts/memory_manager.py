@@ -14,17 +14,13 @@ from datetime import datetime, timezone, timedelta
 from pathlib import Path
 
 # 添加虚拟环境路径（自动检测 Python 版本）
-# 安全策略：只有当当前 Python 解释器位于 .venv 内部时，才插入 .venv 的 site-packages
-# 避免系统 Python 加载 .venv 中 CPU 架构不兼容的 native 扩展
 venv_path = Path(__file__).parent.parent / ".venv"
 if venv_path.exists():
-    in_venv = str(venv_path) in sys.executable
-    if in_venv:
-        for py_ver in ["python3.12", "python3.11", "python3.13", "python3.10"]:
-            site_pkgs = venv_path / "lib" / py_ver / "site-packages"
-            if site_pkgs.exists():
-                sys.path.insert(0, str(site_pkgs))
-                break
+    for py_ver in ["python3.12", "python3.11", "python3.13", "python3.10"]:
+        site_pkgs = venv_path / "lib" / py_ver / "site-packages"
+        if site_pkgs.exists():
+            sys.path.insert(0, str(site_pkgs))
+            break
 
 try:
     import chromadb
@@ -40,6 +36,8 @@ LONG_TERM_DIR = MEMORY_DIR / "long-term"
 VECTOR_DIR = MEMORY_DIR / "vector"
 
 # 阿里云百炼Embedding配置
+# 请设置环境变量 DASHSCOPE_API_KEY 或在 .env 文件中配置
+# 示例: export DASHSCOPE_API_KEY="sk-ed02xxxxxxxx"
 ALIYUN_API_KEY = os.environ.get("DASHSCOPE_API_KEY", "")
 ALIYUN_EMBEDDING_URL = "https://dashscope.aliyuncs.com/api/v1/services/embeddings/text-embedding/text-embedding"
 ALIYUN_VECTOR_DIM = 1536
@@ -112,6 +110,7 @@ class MemoryManager:
         self.conn = sqlite3.connect(str(self.db_path))
         self.cursor = self.conn.cursor()
         
+        # 创建对话历史表
         self.cursor.execute('''
             CREATE TABLE IF NOT EXISTS conversations (
                 id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -123,6 +122,7 @@ class MemoryManager:
             )
         ''')
         
+        # 创建重要记忆表
         self.cursor.execute('''
             CREATE TABLE IF NOT EXISTS important_memories (
                 id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -133,6 +133,7 @@ class MemoryManager:
             )
         ''')
 
+        # 创建同步元数据表（用于增量同步）
         self.cursor.execute('''
             CREATE TABLE IF NOT EXISTS sync_metadata (
                 key TEXT PRIMARY KEY,
@@ -147,10 +148,13 @@ class MemoryManager:
         """初始化 ChromaDB 向量数据库"""
         try:
             self.chroma_client = chromadb.PersistentClient(path=str(VECTOR_DIR))
+            
+            # 创建或打开记忆 collection
             self.collection = self.chroma_client.get_or_create_collection(
                 name="memories",
-                metadata={"hnsw:space": "cosine"}
+                metadata={"description": "魂器记忆向量存储"}
             )
+            
             print("[OK] ChromaDB initialized")
         except Exception as e:
             print(f"[WARN] ChromaDB initialization failed: {e}")
@@ -168,6 +172,7 @@ class MemoryManager:
         
         self.conn.commit()
         
+        # 同时保存到文件系统
         self._save_to_file(session_id, role, content, timestamp)
     
     def _save_to_file(self, session_id, role, content, timestamp):
@@ -181,6 +186,7 @@ class MemoryManager:
     
     def save_important_memory(self, content, category="general", importance=5):
         """保存重要记忆"""
+        # 保存到 SQLite
         self.cursor.execute('''
             INSERT INTO important_memories (category, content, importance)
             VALUES (?, ?, ?)
@@ -206,6 +212,7 @@ class MemoryManager:
             except Exception as e:
                 print(f"[WARN] Failed to save to ChromaDB: {e}")
         
+        # 保存到文件系统
         self._save_memory_to_file(content, category, importance)
         
         return memory_id
@@ -243,10 +250,8 @@ class MemoryManager:
                         where=where_filter
                     )
                     
-                    docs = results.get("documents", [[]])[0]
-                    distances = results.get("distances", [[]])[0]
-                    # 按相似度排序并返回
-                    return [doc for doc in docs if doc]
+                    documents = results.get('documents', [[]])[0]
+                    return documents if documents else []
             except Exception as e:
                 print(f"[WARN] ChromaDB search failed: {e}")
         
@@ -318,13 +323,16 @@ class MemoryManager:
         sync_start = time.time()
 
         try:
+            # 获取上次同步时间（用于增量同步）
             last_sync = None
             if incremental:
                 last_sync = self._get_sync_time("opencode_last_sync")
                 if last_sync:
                     print(f"[INFO] 增量同步：从 {datetime.fromtimestamp(last_sync).strftime('%Y-%m-%d %H:%M:%S')} 开始")
 
+            # 构建查询条件
             if last_sync:
+                # 只同步更新的 session 和消息
                 sessions = src.execute(
                     """SELECT id, title FROM session
                        WHERE time_updated > ?
@@ -332,11 +340,13 @@ class MemoryManager:
                     (last_sync,)
                 ).fetchall()
             else:
+                # 首次全量同步，限制50个session
                 sessions = src.execute(
                     "SELECT id, title FROM session ORDER BY time_updated DESC LIMIT 50"
                 ).fetchall()
 
             for sess_id, title in sessions:
+                # 获取该 session 的消息
                 if last_sync:
                     messages = src.execute("""
                         SELECT m.data, GROUP_CONCAT(p.data, '|||') as parts_data
@@ -366,6 +376,7 @@ class MemoryManager:
                     if role not in ("user", "assistant"):
                         continue
 
+                    # 从 parts 提取文本
                     text_parts = []
                     if parts_json:
                         for part_str in parts_json.split("|||"):
@@ -379,6 +390,7 @@ class MemoryManager:
                     if not content or len(content) < 5:
                         continue
 
+                    # 去重（使用内容哈希+session_id，比全文匹配更高效）
                     import hashlib
                     content_hash = hashlib.md5(f"{sess_id}:{role}:{content}".encode()).hexdigest()
                     existing = self.cursor.execute(
@@ -394,6 +406,7 @@ class MemoryManager:
                         count += 1
 
             self.conn.commit()
+            # 记录同步时间（用于下次增量同步）
             self._set_sync_time("opencode_last_sync", sync_start)
 
         finally:

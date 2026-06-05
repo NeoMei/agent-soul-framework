@@ -170,7 +170,7 @@ async function cmdInit(dirName) {
     ['soul/IDENTITY.md.example', 'soul/IDENTITY.md'],
     ['soul/USER.md.example', 'soul/USER.md'],
     ['soul/HEARTBEAT.md.example', 'soul/HEARTBEAT.md'],
-    ['.opencode/config.json.example', '.opencode/config.json'],
+    ['.opencode/opencode.json.example', '.opencode/opencode.json'],
     ['.opencode/prompt.md.example', '.opencode/prompt.md'],
     ['memory/MEMORY.md.example', 'memory/MEMORY.md'],
     ['AGENTS.md.example', 'AGENTS.md'],
@@ -288,7 +288,7 @@ async function cmdInit(dirName) {
 }
 
 async function cmdConfig() {
-  const cfgPath = join(PACKAGE_ROOT, '.opencode', 'config.json');
+  const cfgPath = join(PACKAGE_ROOT, '.opencode', 'opencode.json');
   const promptPath = join(PACKAGE_ROOT, '.opencode', 'prompt.md');
   console.log('\n  配置路径: ' + cfgPath);
   console.log('  灵魂注入: ' + (existsSync(promptPath) ? '✅ prompt.md' : '⚠️  缺失'));

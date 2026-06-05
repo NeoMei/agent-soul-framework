@@ -9,7 +9,8 @@ heartbeat/runner.log
 heartbeat/.runner.lock
 memory/short-term/*.db
 memory/long-term/*.md
-memory/vector/*.lance
+memory/vector/chroma.sqlite3
+memory/vector/*.sqlite3
 memory/.queue/
 memory/.locks/
 memory/.knowledge_session.json
@@ -49,8 +50,8 @@ logs/
 !/knowledge/*/INDEX.md.example
 
 # OpenCode 配置 — 示例文件可提交
-.opencode/config.json
-!.opencode/config.json.example
+.opencode/opencode.json
+!.opencode/opencode.json.example
 !.opencode/prompt.md.example
 .opencode/prompt.md
 .claude/

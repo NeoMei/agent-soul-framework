@@ -38,6 +38,7 @@
 
 | 技能包 | 说明 | SKILL.md |
 |--------|------|----------|
+| codegraph | 代码关系分析（CodeGraph） | [SKILL.md](codegraph/README.md) |
 | proactive-agent | 主动代理 | [SKILL.md](proactive-agent/SKILL.md) |
 | self-improvement | 自我改进 | [SKILL.md](self-improvement/SKILL.md) |
 | skill-creator | 技能创建 | [SKILL.md](skill-creator/SKILL.md) |

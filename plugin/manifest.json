@@ -1,0 +1,28 @@
+{
+  "name": "hunqi-plugin",
+  "version": "1.0.0",
+  "description": "魂器 OpenCode 插件 — 自动注入灵魂 + 保存对话",
+  "author": "NeoMei",
+  "license": "MIT",
+  "main": "index.js",
+  "type": "module",
+  "hooks": {
+    "experimental.chat.system.transform": {
+      "description": "会话开始时注入灵魂文件"
+    },
+    "chat.message": {
+      "description": "消息自动保存"
+    },
+    "session.end": {
+      "description": "会话结束时清理缓存"
+    }
+  },
+  "permissions": [
+    "fs.read",
+    "fs.write"
+  ],
+  "config": {
+    "soulDir": "soul",
+    "memoryDir": "memory/short-term"
+  }
+}
