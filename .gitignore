@@ -51,7 +51,9 @@ logs/
 
 # OpenCode 配置 — 示例文件可提交
 .opencode/opencode.json
+.opencode/config.json
 !.opencode/opencode.json.example
+!.opencode/config.json.example
 !.opencode/prompt.md.example
 .opencode/prompt.md
 .claude/
