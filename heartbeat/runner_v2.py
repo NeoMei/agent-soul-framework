@@ -652,6 +652,8 @@ def _main():
     executed = []
 
     for anchor in tasks.get("anchors", []):
+        if anchor.get("enabled") is False:
+            continue
         if check_anchor(anchor, tasks, now):
             ok, msg = execute_action(anchor, task_type="anchor")
             record_history(tasks, anchor["id"], anchor.get("action"), "ok" if ok else f"fail: {msg}")
