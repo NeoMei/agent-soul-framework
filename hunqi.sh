@@ -30,61 +30,39 @@ echo "  1. 交互模式: ./hunqi.sh interactive"
 echo "  2. 单条测试: ./hunqi.sh run '你是谁？'"
 echo ""
 
+# 检查 opencode run 是否可用（已知 bug #8502）
+_opencode_run_available() {
+    opencode run --help >/dev/null 2>&1
+    [ $? -eq 0 ]
+}
+
 if [ "$1" == "run" ] && [ -n "$2" ]; then
-    # 单条模式 - 通过stdin注入灵魂
-    {
-        cat .opencode/prompt.md
-        echo ""
-        echo "$2"
-    } | opencode run --dir . 2>&1 | tail -50
+    # 单条模式 - 因 opencode run 已知 bug 暂时无法使用
+    # 临时 workaround：启动 TUI 并提示用户
+    echo "⚠️  单条模式 (./hunqi.sh run) 因 opencode bug 暂时不可用。"
+    echo "   请改用交互模式："
+    echo ""
+    echo "   ./hunqi.sh interactive"
+    echo ""
+    echo "   然后在 TUI 中输入: $2"
+    echo ""
+    echo "   或直接启动 TUI：opencode ."
+    exit 1
 
 elif [ "$1" == "interactive" ]; then
-    # 交互模式 - 先通过 run 创建带灵魂的 session，再继续 TUI
+    # 交互模式 - @neomei/agentsoul 插件会自动注入灵魂，无需 stdin
     echo "🎯 启动交互模式..."
     echo ""
-    
-    # Step 1: 用 run 创建一条带灵魂的初始对话，建立 session
-    echo "💉 正在注入灵魂..."
-    SESSION_ID=$(
-        {
-            cat .opencode/prompt.md
-            echo ""
-            echo "你好，请确认你的身份。"
-        } | opencode run --dir . --format json 2>/dev/null | \
-        python3 -c "
-import sys, json
-for line in sys.stdin:
-    line = line.strip()
-    if not line:
-        continue
-    try:
-        obj = json.loads(line)
-        sid = obj.get('sessionID', '')
-        if sid:
-            print(sid)
-            break
-    except:
-        pass
-" 2>/dev/null
-    )
-    
-    if [ -n "$SESSION_ID" ]; then
-        echo "✅ 灵魂注入成功！Session: $SESSION_ID"
-        echo ""
-        # Step 2: 用 --continue 启动 TUI，继续这个有灵魂的 session
-        opencode . --continue --session "$SESSION_ID"
-    else
-        echo "⚠️  灵魂注入失败，直接启动 TUI..."
-        echo "   如果Agent不记得自己是谁，请手动告诉她。"
-        echo ""
-        if [ -t 0 ]; then
-            read -p "按回车键启动 TUI..."
-        fi
-        opencode .
+    echo "💡 @neomei/agentsoul 插件会在每次 LLM 调用时自动注入灵魂"
+    echo "   Agent会记得自己是谁 ✨"
+    echo ""
+    if [ -t 0 ]; then
+        read -p "按回车键启动 TUI..."
     fi
+    opencode .
 
 else
     echo "用法:"
-    echo "  ./hunqi.sh run '你是谁？'     # 单条测试"
-    echo "  ./hunqi.sh interactive         # 交互模式（TUI）"
+    echo "  ./hunqi.sh run '你是谁？'     # 单条测试（暂时不可用）"
+    echo "  ./hunqi.sh interactive         # 交互模式（TUI，推荐）"
 fi
