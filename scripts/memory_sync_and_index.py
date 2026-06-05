@@ -98,6 +98,47 @@ def process_message_queue():
     return count
 
 
+def vectorize_summaries():
+    """增量生成 session 摘要并写入 ChromaDB"""
+    sys.path.insert(0, os.path.join(os.path.dirname(__file__)))
+    from memory_manager import MemoryManager
+    mm = MemoryManager()
+    try:
+        vectorized = mm.get_vectorized_ids("summaries")
+        cutoff = time.time() - 7 * 86400
+        rows = []
+        try:
+            import sqlite3
+            conn = sqlite3.connect(CONVERSATIONS_DB)
+            rows = conn.execute(
+                "SELECT session_id, GROUP_CONCAT(content, ' ') as full_text, "
+                "MIN(timestamp) as ts FROM conversations "
+                "WHERE timestamp > ? GROUP BY session_id ORDER BY ts DESC LIMIT 20",
+                (cutoff,)
+            ).fetchall()
+            conn.close()
+        except Exception as e:
+            print(f"[VECTOR] DB query failed: {e}")
+            return 0
+
+        count = 0
+        for session_id, full_text, ts in rows:
+            sum_id = f"sum_{session_id}"
+            if sum_id in vectorized:
+                continue
+            if not full_text or len(full_text) < 100:
+                continue
+            summary = full_text[:800]
+            date_str = time.strftime("%Y-%m-%d", time.localtime(ts))
+            if mm.save_session_summary(session_id, summary, date_str):
+                count += 1
+        if count:
+            print(f"[VECTOR] {count} 条 session 摘要写入向量库")
+        return count
+    finally:
+        mm.close()
+
+
 def run(cmd):
     result = subprocess.run(cmd, capture_output=True, text=True, timeout=60, cwd=PROJECT_DIR)
     return result.stdout.strip() + result.stderr.strip()
@@ -116,6 +157,10 @@ def main():
     print("[INDEX] 增量 FTS5 索引...")
     out = run([sys.executable, "scripts/memory_structured.py", "index", "--limit=20"])
     print(out)
+
+    # 4. 增量向量化 session 摘要
+    print("[VECTOR] 增量向量化...")
+    vectorize_summaries()
 
     print("[DONE] 记忆同步完成")
 

@@ -149,17 +149,46 @@ class MemoryManager:
         try:
             self.chroma_client = chromadb.PersistentClient(path=str(VECTOR_DIR))
             
-            # 创建或打开记忆 collection
-            self.collection = self.chroma_client.get_or_create_collection(
+            self.memories_col = self.chroma_client.get_or_create_collection(
                 name="memories",
-                metadata={"description": "魂器记忆向量存储"}
+                metadata={"description": "魂器重要记忆向量存储"}
             )
+            self.knowledge_col = self.chroma_client.get_or_create_collection(
+                name="knowledge",
+                metadata={"description": "知识卡片向量存储"}
+            )
+            self.summaries_col = self.chroma_client.get_or_create_collection(
+                name="summaries",
+                metadata={"description": "对话摘要向量存储"}
+            )
+            
+            self.collection = self.memories_col
             
             print("[OK] ChromaDB initialized")
         except Exception as e:
             print(f"[WARN] ChromaDB initialization failed: {e}")
             self.chroma_client = None
             self.collection = None
+            self.knowledge_col = None
+            self.summaries_col = None
+    
+    def _add_to_collection(self, collection, doc_id, content, metadata):
+        if not CHROMADB_AVAILABLE or collection is None:
+            return False
+        try:
+            embedding = self.embedding_client.get_embedding(content)
+            if embedding:
+                collection.add(
+                    ids=[doc_id],
+                    embeddings=[embedding],
+                    documents=[content],
+                    metadatas=[metadata]
+                )
+                return True
+            return False
+        except Exception as e:
+            print(f"[WARN] ChromaDB write failed: {e}")
+            return False
     
     def save_conversation(self, session_id, role, content):
         """保存对话记录"""
@@ -195,27 +224,80 @@ class MemoryManager:
         self.conn.commit()
         memory_id = self.cursor.lastrowid
         
-        # 保存到 ChromaDB
-        if CHROMADB_AVAILABLE and self.collection is not None:
-            try:
-                embedding = self.embedding_client.get_embedding(content)
-                if embedding:
-                    self.collection.add(
-                        ids=[f"mem_{memory_id}"],
-                        embeddings=[embedding],
-                        documents=[content],
-                        metadatas=[{
-                            "category": category,
-                            "timestamp": datetime.now(timezone(timedelta(hours=8))).isoformat()
-                        }]
-                    )
-            except Exception as e:
-                print(f"[WARN] Failed to save to ChromaDB: {e}")
+        self._add_to_collection(
+            self.memories_col, f"mem_{memory_id}", content,
+            {"type": "memory", "category": category, "importance": importance,
+             "timestamp": datetime.now(timezone(timedelta(hours=8))).isoformat()}
+        )
         
         # 保存到文件系统
         self._save_memory_to_file(content, category, importance)
         
         return memory_id
+    
+    def save_knowledge_card(self, card_id, content, category, source_file="", date_str=""):
+        ts = datetime.now(timezone(timedelta(hours=8))).isoformat()
+        ok = self._add_to_collection(
+            self.knowledge_col, f"kg_{card_id}", content,
+            {"type": "knowledge", "category": category, "source_file": source_file,
+             "date": date_str, "timestamp": ts}
+        )
+        if ok:
+            print(f"[OK] 知识卡片 {card_id} 已写入向量库")
+        return ok
+
+    def save_session_summary(self, session_id, summary, date_str=""):
+        ts = datetime.now(timezone(timedelta(hours=8))).isoformat()
+        ok = self._add_to_collection(
+            self.summaries_col, f"sum_{session_id}", summary,
+            {"type": "summary", "session_id": session_id, "date": date_str, "timestamp": ts}
+        )
+        if ok:
+            print(f"[OK] 摘要 {session_id[:16]}... 已写入向量库")
+        return ok
+
+    def get_vectorized_ids(self, collection_name):
+        if not CHROMADB_AVAILABLE or self.chroma_client is None:
+            return set()
+        try:
+            col = self.chroma_client.get_or_create_collection(name=collection_name)
+            if col.count() == 0:
+                return set()
+            all_ids = col.get(include=[])["ids"]
+            return set(all_ids)
+        except Exception:
+            return set()
+
+    def vector_search(self, query, collections=None, limit=5):
+        if not CHROMADB_AVAILABLE or self.chroma_client is None:
+            return []
+        if collections is None:
+            collections = ["memories", "knowledge", "summaries"]
+        
+        query_embedding = self.embedding_client.get_embedding(query)
+        if not query_embedding:
+            return []
+        
+        results = []
+        for col_name in collections:
+            try:
+                col = self.chroma_client.get_or_create_collection(name=col_name)
+                if col.count() == 0:
+                    continue
+                qr = col.query(query_embeddings=[query_embedding], n_results=limit)
+                docs = qr.get("documents", [[]])[0]
+                metas = qr.get("metadatas", [[]])[0]
+                dists = qr.get("distances", [[]])[0]
+                for doc, meta, dist in zip(docs, metas, dists):
+                    results.append({
+                        "content": doc, "metadata": meta,
+                        "distance": dist, "collection": col_name
+                    })
+            except Exception:
+                continue
+        
+        results.sort(key=lambda x: x["distance"])
+        return results[:limit]
     
     def _save_memory_to_file(self, content, category, importance):
         """保存记忆到文件系统"""
@@ -544,6 +626,31 @@ def main():
 
         elif cmd == "stats":
             print_stats(mm)
+
+        elif cmd == "vector-stats":
+            if not CHROMADB_AVAILABLE or mm.chroma_client is None:
+                print("[FAIL] ChromaDB not available")
+                return
+            for name in ["memories", "knowledge", "summaries"]:
+                col = mm.chroma_client.get_or_create_collection(name=name)
+                print(f"  {name}: {col.count()} records")
+
+        elif cmd == "vector-search":
+            query = " ".join(sys.argv[2:]) if len(sys.argv) > 2 else ""
+            if not query:
+                print("用法: python3 scripts/memory_manager.py vector-search <查询>")
+                return
+            results = mm.vector_search(query)
+            if results:
+                print(f"\n🔍 向量搜索 '{query}' ({len(results)} 条):\n")
+                for i, r in enumerate(results, 1):
+                    meta = r["metadata"]
+                    print(f"  [{i}] [{r['collection']}] dist={r['distance']:.4f}")
+                    print(f"      {r['content'][:150]}")
+                    print(f"      meta: {meta}")
+                    print()
+            else:
+                print("[INFO] 未找到匹配的向量记忆")
 
         elif cmd == "test":
             print("=== 魂器记忆系统测试 ===\n")

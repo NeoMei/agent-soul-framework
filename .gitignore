@@ -9,8 +9,7 @@ heartbeat/runner.log
 heartbeat/.runner.lock
 memory/short-term/*.db
 memory/long-term/*.md
-memory/vector/chroma.sqlite3
-memory/vector/*.sqlite3
+memory/vector/
 memory/.queue/
 memory/.locks/
 memory/.knowledge_session.json

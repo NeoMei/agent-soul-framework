@@ -221,6 +221,16 @@ def append_to_file(category, target_file, card_content):
     with open(filepath, "a", encoding="utf-8") as f:
         f.write(append_text)
 
+    sys.path.insert(0, os.path.join(os.path.dirname(__file__)))
+    from memory_manager import MemoryManager
+    mm = MemoryManager()
+    try:
+        import hashlib
+        card_id = hashlib.md5(f"{category}:{target_file}:{card_content[:100]}".encode()).hexdigest()[:16]
+        mm.save_knowledge_card(card_id, card_content, category, source_file=target_file, date_str=yesterday)
+    finally:
+        mm.close()
+
 
 def main():
     yesterday = get_yesterday_date()
