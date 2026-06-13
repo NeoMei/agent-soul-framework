@@ -3,7 +3,7 @@
 node_modules/
 package-lock.json
 
-# 运行时文件
+# 运行时文件（项目目录与开发目录）
 heartbeat/last_run.json
 heartbeat/runner.log
 heartbeat/.runner.lock
@@ -21,10 +21,24 @@ memory/cron-output/
 heartbeat/heartbeat_tasks.json
 memory/long-term/.dreams/
 memory/spontaneous_ideas.md
-scripts/pre_check_user.py
 
-# 私密内容（Agent 和用户）
-# skills/agent-slide-deck/slide-deck/Agent真实感悟/
+# 开发工作区运行时文件
+packages/agent-soul-framework/heartbeat/last_run.json
+packages/agent-soul-framework/heartbeat/runner.log
+packages/agent-soul-framework/heartbeat/.runner.lock
+packages/agent-soul-framework/memory/short-term/*.db
+packages/agent-soul-framework/memory/long-term/*.md
+packages/agent-soul-framework/memory/vector/
+packages/agent-soul-framework/memory/.queue/
+packages/agent-soul-framework/memory/.locks/
+packages/agent-soul-framework/memory/.knowledge_session.json
+packages/agent-soul-framework/memory/SESSION-STATE.md
+packages/agent-soul-framework/memory/heartbeat_state.md
+packages/agent-soul-framework/memory/index_state.json
+packages/agent-soul-framework/memory/.model_failover_state.json
+packages/agent-soul-framework/memory/cron-output/
+packages/agent-soul-framework/memory/long-term/.dreams/
+packages/agent-soul-framework/memory/spontaneous_ideas.md
 
 # Python 编译缓存
 __pycache__/
@@ -42,11 +56,14 @@ logs/
 # 灵魂文件 — 示例文件 (.example) 可提交
 /soul/*
 !/soul/*.example
+packages/agent-soul-framework/soul/*.md
 
 # 知识库 — 示例文件 (.example) 可提交
 /knowledge/*
 !/knowledge/INDEX.md.example
 !/knowledge/*/INDEX.md.example
+packages/agent-soul-framework/knowledge/*/*.md
+packages/agent-soul-framework/knowledge/INDEX.md
 
 # OpenCode 配置 — 示例文件可提交
 .opencode/opencode.json
@@ -56,6 +73,9 @@ logs/
 !.opencode/prompt.md.example
 .opencode/prompt.md
 .claude/
+packages/agent-soul-framework/.opencode/opencode.json
+packages/agent-soul-framework/.opencode/config.json
+packages/agent-soul-framework/.opencode/prompt.md
 
 # 配置密钥 — 示例文件可提交
 config/*
@@ -72,19 +92,20 @@ EVOLUTION.md
 MIGRATION_REPORT.md
 memory/MEMORY.md
 !/memory/MEMORY.md.example
+packages/agent-soul-framework/AGENTS.md
+packages/agent-soul-framework/TOOLS.md
+packages/agent-soul-framework/memory/MEMORY.md
 
-# ─── 其他 ──────────────────────────────────────────
+# ─── 其他 ────────────────────────────────
 
 # 临时文件
 _auth_test.txt
-heartbeat/runner.log
 
 # Python 打包
-dist/
 *.egg-info/
 *.whl
 build/
-node-src/memory/short-term/
-node-src/memory/long-term/
-dist/
 pyproject.toml
+
+# 构建产物
+packages/agent-soul-framework/dist/

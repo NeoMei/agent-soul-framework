@@ -1,0 +1,37 @@
+{
+  "name": "@neomei/agent-soul-skills",
+  "version": "4.5.0",
+  "description": "魂器可选技能插件包 — 包含需要 Python 脚本的 Agent 技能",
+  "type": "module",
+  "files": [
+    "skills",
+    "scripts",
+    "heartbeat",
+    "connectors",
+    "README.md"
+  ],
+  "scripts": {
+    "build": "echo 'No build step required'",
+    "clean": "echo 'No clean step required'",
+    "test": "echo 'No tests configured'"
+  },
+  "engines": {
+    "node": ">=20"
+  },
+  "keywords": [
+    "ai-agent",
+    "opencode",
+    "agent-skills",
+    "hunqi",
+    "agent-soul"
+  ],
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/NeoMei/agent-soul-framework"
+  },
+  "author": "NeoMei",
+  "license": "MIT",
+  "peerDependencies": {
+    "@neomei/agent-soul-framework": "^4.5.0"
+  }
+}

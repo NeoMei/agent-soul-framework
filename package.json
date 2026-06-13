@@ -1,48 +1,19 @@
 {
-  "name": "@neomei/agent-soul",
+  "name": "@neomei/agent-soul-monorepo",
   "version": "4.5.0",
-  "description": "魂器 — 基于 OpenCode 的 AI Agent 管理层框架。持久记忆 · 自主学习 · 多端部署 · 心跳自治",
+  "private": true,
+  "description": "魂器 — 基于 OpenCode 的 AI Agent 管理层框架（monorepo）",
   "type": "module",
-  "main": "dist/index.js",
-  "bin": {
-    "hunqi": "bin/hunqi",
-    "hunqi-heartbeat": "dist/heartbeat/runner.js",
-    "hunqi-knowledge": "bin/hunqi-knowledge"
-  },
-  "files": [
-    "dist",
-    "bin",
-    "plugin",
-    "soul/*.example",
-    "skills/*/SKILL.md",
-    "skills/*/scripts/*.py",
-    "skills/*/scripts/*.sh",
-    "skills/*/scripts/*.cjs",
-    "knowledge/*.example",
-    "knowledge/*/INDEX.md.example",
-    "scripts/*.py",
-    "heartbeat/*.py",
-    "heartbeat/*.json",
-    "heartbeat/*.sh",
-    "memory/MEMORY.md.example",
-    ".opencode/opencode.json.example",
-    ".opencode/prompt.md.example",
-    "AGENTS.md.example",
-    "TOOLS.md.example",
-    "README.md",
-    "start.sh",
-    "hunqi.sh",
-    "install.sh",
-    "uninstall.sh",
-    "heartbeat_wrapper.sh",
-    "test.sh",
-    "verify.sh"
+  "workspaces": [
+    "packages/*"
   ],
   "scripts": {
-    "build": "tsc",
-    "dev": "tsc --watch",
-    "clean": "rm -rf dist",
-    "prepublishOnly": "npm run build"
+    "build": "npm run build --workspaces",
+    "clean": "npm run clean --workspaces",
+    "test": "npm run test --workspaces --if-present",
+    "publish:packages": "npm publish --workspaces --access public",
+    "prepublishOnly": "npm run build",
+    "version:bump": "node scripts/version-bump.js"
   },
   "engines": {
     "node": ">=20"
@@ -54,7 +25,6 @@
     "memory",
     "knowledge",
     "heartbeat",
-    "feishu",
     "llm",
     "agent-orchestration",
     "self-improving"
@@ -64,14 +34,5 @@
     "url": "https://github.com/NeoMei/agent-soul-framework"
   },
   "author": "NeoMei",
-  "license": "MIT",
-  "dependencies": {
-    "@neomei/opencode-feishu": "^0.6.3",
-    "@neomei/opencode-qiwei": "latest",
-    "zod": "^3.23.0"
-  },
-  "devDependencies": {
-    "@types/node": "^20.0.0",
-    "typescript": "^5.4.0"
-  }
+  "license": "MIT"
 }

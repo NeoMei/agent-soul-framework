@@ -1,0 +1,37 @@
+{
+  "$schema": "https://opencode.ai/config.json",
+  "model": "your-default-model",
+  "provider": {
+    "your-provider-name": {
+      "options": {
+        "apiKey": "your-api-key"
+      },
+      "models": {
+        "your-model-id": {
+          "name": "Your Model Display Name",
+          "attachment": true,
+          "modalities": {
+            "input": ["text", "image", "pdf"]
+          },
+          "limit": {
+            "context": 131072,
+            "input": 128000,
+            "output": 8192
+          }
+        }
+      }
+    }
+  },
+  "default_agent": "build",
+  "plugin": [
+    "./plugin/index.js",
+    "./tools/read-plugin.js"
+  ],
+  "compaction": {
+    "auto": true,
+    "prune": true,
+    "tail_turns": 3,
+    "preserve_recent_tokens": 8000,
+    "reserved": 16384
+  }
+}
