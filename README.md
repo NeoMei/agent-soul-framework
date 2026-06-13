@@ -254,7 +254,7 @@ Python:        Python 3.14.4  ✅
 项目灵魂:      ✅
 记忆系统:      ✅ MEMORY.md | ✅ conversations.db
 心跳调度:      crontab 已配置 ✅
-环境变量:      .env 存在，已配置 6 个变量 ✅
+环境变量:      .env.example 模板已就绪，请复制为 .env 后填入真实凭证 ✅
 ```
 
 `hunqi start` 可一键完成上述所有操作。
