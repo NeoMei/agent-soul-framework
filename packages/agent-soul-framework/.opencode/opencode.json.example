@@ -24,8 +24,7 @@
   },
   "default_agent": "build",
   "plugin": [
-    "./plugin/index.js",
-    "./tools/read-plugin.js"
+    "./plugin/index.js"
   ],
   "compaction": {
     "auto": true,

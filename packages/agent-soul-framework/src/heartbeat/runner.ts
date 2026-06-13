@@ -13,7 +13,7 @@ import { StructuredMemory } from '../memory/structured.js';
 import { existsSync, readFileSync } from 'node:fs';
 import { join } from 'node:path';
 
-const PROJECT_DIR = join(import.meta.dirname, '..', '..');
+const PROJECT_DIR = process.cwd();
 const TASKS_FILE = join(PROJECT_DIR, 'heartbeat', 'heartbeat_tasks.json');
 
 function now() { return new Date(); }

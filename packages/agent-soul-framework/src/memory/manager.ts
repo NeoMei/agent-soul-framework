@@ -8,7 +8,7 @@ import { existsSync, mkdirSync, appendFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { homedir } from 'node:os';
 
-const PROJECT_DIR = join(import.meta.dirname, '..', '..');
+const PROJECT_DIR = process.cwd();
 const MEMORY_DIR = join(PROJECT_DIR, 'memory');
 const DB_PATH = join(MEMORY_DIR, 'short-term', 'conversations.db');
 const OPENCODE_DB = join(homedir(), '.local', 'share', 'opencode', 'opencode.db');

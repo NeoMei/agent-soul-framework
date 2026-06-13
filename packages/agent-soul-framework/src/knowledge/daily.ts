@@ -8,7 +8,7 @@ import { OpenCodeAPI } from '../opencode/api.js';
 import { readFileSync, writeFileSync, mkdirSync, existsSync, appendFileSync } from 'node:fs';
 import { join, dirname } from 'node:path';
 
-const PROJECT_DIR = join(import.meta.dirname, '..', '..');
+const PROJECT_DIR = process.cwd();
 const KNOWLEDGE_DIR = join(PROJECT_DIR, 'knowledge');
 
 const api = new OpenCodeAPI();

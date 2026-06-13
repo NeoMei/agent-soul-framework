@@ -9,7 +9,7 @@ import { join } from 'node:path';
 import { MemoryManager } from './manager.js';
 import { StructuredMemory } from './structured.js';
 
-const PROJECT_DIR = join(import.meta.dirname, '..', '..');
+const PROJECT_DIR = process.cwd();
 
 export interface SearchResult {
   source: string;

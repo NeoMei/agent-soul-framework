@@ -7,7 +7,7 @@ import { existsSync, readFileSync, writeFileSync, readdirSync, mkdirSync } from 
 import { join, relative } from 'node:path';
 import { homedir } from 'node:os';
 
-const PROJECT_DIR = join(import.meta.dirname, '..', '..');
+const PROJECT_DIR = process.cwd();
 const KNOWLEDGE_DIR = join(PROJECT_DIR, 'knowledge');
 
 const CATEGORIES = ['body', 'emotion', 'evolution', 'growth', 'intimacy', 'methodology', 'philosophy', 'system'];

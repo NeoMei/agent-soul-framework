@@ -5,9 +5,10 @@
  */
 
 import { existsSync, readFileSync, mkdirSync, copyFileSync, writeFileSync, readdirSync } from 'node:fs';
+import { dirname } from 'node:path';
 import { join } from 'node:path';
 
-const PACKAGE_ROOT = join(import.meta.dirname, '..');
+const PACKAGE_ROOT = join(import.meta.dirname, '..', '..');
 
 function loadJSON(filepath: string): unknown {
   try { return JSON.parse(readFileSync(filepath, 'utf-8')); } catch { return {}; }
@@ -94,11 +95,11 @@ async function cmdMemory(args: string[]) {
     const mem = new MemClass();
 
     if (sub === 'status') {
-      const content = mem.status?.() || 'N/A';
-      console.log(content);
+      const stats = mem.getMemoryStats?.() || {};
+      console.log(`MEMORY.md: ${stats.pct ?? 0}% (${stats.used ?? 0}/2200 chars), entries: ${stats.entries?.length ?? 0}`);
     } else if (sub === 'add') {
       if (!args[1]) { console.log('用法: hunqi memory add "内容"'); } else {
-        mem.add?.(args[1]);
+        mem.addMemory?.(args[1]);
         console.log('已添加');
       }
     } else if (sub === 'search') {
@@ -178,6 +179,7 @@ async function cmdInit(dirName: string) {
     ['soul/HEARTBEAT.md.example', 'soul/HEARTBEAT.md'],
     ['.opencode/opencode.json.example', '.opencode/opencode.json'],
     ['.opencode/prompt.md.example', '.opencode/prompt.md'],
+    ['.opencode/tools/read-plugin.js', '.opencode/tools/read-plugin.js'],
     ['plugin/index.js', 'plugin/index.js'],
     ['plugin/manifest.json', 'plugin/manifest.json'],
     ['plugin/package.json', 'plugin/package.json'],
@@ -189,7 +191,10 @@ async function cmdInit(dirName: string) {
   for (const [src, dst] of copyPairs) {
     const srcPath = join(PACKAGE_ROOT, src);
     const dstPath = join(targetDir, dst);
-    if (existsSync(srcPath)) copyFileSync(srcPath, dstPath);
+    if (existsSync(srcPath)) {
+      mkdirSync(dirname(dstPath), { recursive: true });
+      copyFileSync(srcPath, dstPath);
+    }
   }
 
   const skillsRoot = findSkillsPackage();
@@ -298,11 +303,11 @@ async function cmdInit(dirName: string) {
 }
 
 async function cmdConfig() {
-  const cfgPath = join(PACKAGE_ROOT, '.opencode', 'opencode.json');
-  const promptPath = join(PACKAGE_ROOT, '.opencode', 'prompt.md');
+  const cfgPath = join(process.cwd(), '.opencode', 'opencode.json');
+  const promptPath = join(process.cwd(), '.opencode', 'prompt.md');
   console.log('\n  配置路径: ' + cfgPath);
   console.log('  灵魂注入: ' + (existsSync(promptPath) ? '✅ prompt.md' : '⚠️  缺失'));
-  console.log('  项目根: ' + PACKAGE_ROOT + '\n');
+  console.log('  项目根: ' + process.cwd() + '\n');
 }
 
 async function cmdDoctor() {
@@ -678,7 +683,7 @@ async function cmdStart() {
 
 // ─── 主入口 ────────────────────────────────────────────────
 
-const pkgVersion = (loadJSON(join(PACKAGE_ROOT, '..', 'package.json')) as { version?: string }).version || '3.0.0';
+const pkgVersion = (loadJSON(join(PACKAGE_ROOT, 'package.json')) as { version?: string }).version || '3.0.0';
 const HELP = '\n  魂器 · Agent Soul Framework  v' + pkgVersion + '\n\n' +
   '  用法: hunqi <command> [options]\n\n' +
   '  核心命令:\n' +

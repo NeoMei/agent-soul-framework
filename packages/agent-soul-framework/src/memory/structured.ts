@@ -7,7 +7,7 @@ import { DatabaseSync } from 'node:sqlite';
 import { existsSync, readFileSync, writeFileSync, mkdirSync } from 'node:fs';
 import { join } from 'node:path';
 
-const PROJECT_DIR = join(import.meta.dirname, '..', '..');
+const PROJECT_DIR = process.cwd();
 const MEMORY_DIR = join(PROJECT_DIR, 'memory');
 const MEMORY_DB = join(MEMORY_DIR, 'short-term', 'memories.db');
 const MEMORY_FILE = join(MEMORY_DIR, 'MEMORY.md');
