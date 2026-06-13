@@ -109,7 +109,7 @@ fi
 
 # 安装连接器（从 npm registry 全局安装，不需要 clone 源码）
 echo "📦 安装连接器..."
-npm install -g @neomei/opencode-feishu@latest @neomei/opencode-qiwei@latest @neomei/opencode-clawmessenger@latest || {
+npm install -g @neomei/opencode-feishu@latest @neomei/opencode-qiwei@latest || {
   echo "❌ 连接器安装失败"
   echo "   请检查网络连接和 npm registry 可访问性"
   exit 1
