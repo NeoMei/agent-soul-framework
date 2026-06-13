@@ -166,10 +166,27 @@ def generate_markdown_report(scan_date: str, language: str, repositories: List[D
     return "\n".join(lines)
 
 
+def get_default_meizong_chat_id() -> str:
+    """从飞书会话配置中读取第一个 p2p chat_id"""
+    sessions_file = os.path.expanduser("~/.config/opencode/feishu-sessions.json")
+    if not os.path.exists(sessions_file):
+        return ""
+    try:
+        with open(sessions_file, "r", encoding="utf-8") as f:
+            data = json.load(f)
+        for s in data.get("sessions", []):
+            if s.get("chatType") == "p2p":
+                return s.get("chatId", "")
+    except Exception:
+        pass
+    return ""
+
+
 def send_report_to_meizong(doc_url: str, scan_date: str, language: str, total_findings: int, repo_count: int) -> bool:
-    meizong_chat_id = os.environ.get("FEISHU_MEIZONG_CHAT_ID", "")
+    """发送飞书消息通知梅总（使用 chat_id）"""
+    meizong_chat_id = os.environ.get("FEISHU_MEIZONG_CHAT_ID", "") or get_default_meizong_chat_id()
     if not meizong_chat_id:
-        print("[WARN] FEISHU_MEIZONG_CHAT_ID not set, skip notification")
+        print("[WARN] FEISHU_MEIZONG_CHAT_ID not set and no p2p session found, skip notification")
         return False
     app_id, app_secret = get_feishu_credentials()
     if not app_id or not app_secret:
