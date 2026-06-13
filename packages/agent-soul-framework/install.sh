@@ -107,90 +107,21 @@ fi
  npm link || { echo "❌ npm link 核心框架失败"; exit 1; }
  cd "${HUNQI_HOME}/agent-soul-framework"
 
-# 安装连接器（从 npm registry 全局安装，不需要 clone 源码）
-echo "📦 安装连接器..."
-npm install -g @neomei/opencode-feishu@latest @neomei/opencode-qiwei@latest || {
-  echo "❌ 连接器安装失败"
-  echo "   请检查网络连接和 npm registry 可访问性"
-  exit 1
-}
+# 安装核心框架（channel 插件由用户按需单独安装）
+ echo "📦 安装魂器核心框架..."
+ npm install -g @neomei/agent-soul-framework@latest || {
+   echo "❌ 核心框架安装失败"
+   echo "   请检查网络连接和 npm registry 可访问性"
+   exit 1
+ }
+ 
+ # 全局链接核心框架（开发/本地 clone 模式）
+ # cd "${HUNQI_HOME}/agent-soul-framework/packages/agent-soul-framework"
+ # npm link || { echo "❌ npm link 核心框架失败"; exit 1; }
+ # cd "${HUNQI_HOME}/agent-soul-framework"
 
-# 创建稳定 wrapper（systemd 不依赖 nvm PATH）
-echo "🔧 创建启动 wrapper..."
-mkdir -p "${HUNQI_HOME}/bin"
-
-cat > "${HUNQI_HOME}/bin/opencode-feishu" << 'WRAPPER'
-#!/bin/bash
-# opencode-feishu 稳定启动 wrapper
-# 运行时自动解析 node 和包位置，不依赖 PATH 或 nvm 版本
-
-resolve_node() {
-    local p
-    for p in "$(command -v node 2>/dev/null)" \
-             "$HOME/.nvm/versions/node"/*/bin/node \
-             "$HOME/.local/share/fnm/node-versions"/*/installation/bin/node \
-             /usr/local/bin/node /usr/bin/node; do
-        # 跳过未展开的 glob（路径含 * 表示无匹配）
-        case "$p" in *"*"*) continue ;; esac
-        [ -x "$p" ] && { echo "$p"; return 0; }
-    done
-    return 1
-}
-
-resolve_opencode() {
-    local p
-    for p in "$(command -v opencode 2>/dev/null)" \
-             "$HOME/.nvm/versions/node"/*/bin/opencode \
-             "$HOME/.local/share/fnm/node-versions"/*/installation/bin/opencode \
-             /usr/local/bin/opencode \
-             /usr/bin/opencode; do
-        case "$p" in *"*"*) continue ;; esac
-        [ -x "$p" ] && { echo "$p"; return 0; }
-    done
-    return 1
-}
-
-resolve_feishu() {
-    local p
-    # 注意：不能搜索 PATH，因为 wrapper 本身可能叫 opencode-feishu
-    # 导致找到自身，引发无限递归
-    for p in "$(npm root -g 2>/dev/null)/@neomei/opencode-feishu/bin/opencode-feishu" \
-             "$HOME/.nvm/versions/node"/*/lib/node_modules/@neomei/opencode-feishu/bin/opencode-feishu \
-             "$HOME/.local/share/fnm/node-versions"/*/installation/lib/node_modules/@neomei/opencode-feishu/bin/opencode-feishu; do
-        case "$p" in *"*"*) continue ;; esac
-        [ -f "$p" ] && { echo "$p"; return 0; }
-    done
-    return 1
-}
-
-# 处理特殊参数（供 systemd service 使用）
-case "${1:-}" in
-    --resolve-node)
-        resolve_node
-        exit ${?}
-        ;;
-    --resolve-opencode)
-        resolve_opencode
-        exit ${?}
-        ;;
-    --resolve-feishu)
-        resolve_feishu
-        exit ${?}
-        ;;
-esac
-
-NODE=$(resolve_node) || { echo "[wrapper] node not found" >&2; exit 1; }
-FEISHU=$(resolve_feishu) || { echo "[wrapper] opencode-feishu not found" >&2; exit 1; }
-
-exec "$NODE" "$FEISHU" "$@"
-WRAPPER
-chmod +x "${HUNQI_HOME}/bin/opencode-feishu"
-
-# 把 ~/.hunqi/bin 加入 PATH
-if ! grep -q '\.hunqi/bin' "$HOME/.bashrc" 2>/dev/null; then
-    echo 'export PATH="$HOME/.hunqi/bin:$PATH"' >> "$HOME/.bashrc"
-    BASHRC_UPDATED=1
-fi
+# 可选：如需飞书/企微通道，请手动安装：
+# npm install -g @neomei/opencode-feishu @neomei/opencode-qiwei
 
 # 初始化默认项目
 echo "📝 初始化配置..."
@@ -315,17 +246,17 @@ else
   echo "  ❌ hunqi 命令不可用（可能需要重新打开终端或 source ~/.bashrc）"
   INSTALL_OK=0
 fi
+
+# channel 插件为可选组件，不影响核心安装成功判定
 if command -v opencode-feishu &>/dev/null; then
-  echo "  ✅ opencode-feishu 可用"
+  echo "  ✅ opencode-feishu 可用（可选 channel 插件）"
 else
-  echo "  ⚠️  opencode-feishu 不可用"
-  INSTALL_OK=0
+  echo "  ℹ️  opencode-feishu 未安装，如需飞书通道请运行: npm install -g @neomei/opencode-feishu"
 fi
-if [ -f "${HUNQI_HOME}/bin/opencode-feishu" ]; then
-  echo "  ✅ wrapper 已创建"
+if command -v opencode-qiwei &>/dev/null; then
+  echo "  ✅ opencode-qiwei 可用（可选 channel 插件）"
 else
-  echo "  ❌ wrapper 未创建"
-  INSTALL_OK=0
+  echo "  ℹ️  opencode-qiwei 未安装，如需企微通道请运行: npm install -g @neomei/opencode-qiwei"
 fi
 
 echo ""
@@ -345,12 +276,17 @@ if [ -f "/etc/systemd/system/hunqi-core@${USER}.service" ]; then
   echo "    hunqi start          # 一键启动全部服务（前台）"
 else
   echo "  现在运行:"
-  echo "    hunqi start          # 一键启动全部服务"
+  echo "    hunqi start          # 一键启动本地服务"
 fi
+echo ""
+echo "  可选 channel 插件（按需安装）:"
+echo "    npm install -g @neomei/opencode-feishu   # 飞书通道"
+echo "    npm install -g @neomei/opencode-qiwei    # 企业微信通道"
 echo ""
 echo "  连接器配置:"
 echo "    opencode-feishu setup  # 飞书配置向导"
 echo "    opencode-feishu doctor # 检查飞书连接"
+echo "    opencode-qiwei setup   # 企微配置向导"
 echo ""
 if [ "${BASHRC_UPDATED:-0}" -eq 1 ]; then
   echo "  💡 PATH 已更新，请运行: source ~/.bashrc"

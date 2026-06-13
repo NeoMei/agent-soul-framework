@@ -98,34 +98,20 @@ step1_check_env() {
         print_warning "Python 未安装（心跳功能将不可用）"
     fi
 
-    # 检查连接器
+    # 检查可选 channel 插件（飞书/企微，按需安装）
     if command -v opencode-feishu &>/dev/null; then
-        print_success "飞书连接器 (opencode-feishu)"
+        print_success "飞书通道插件 (opencode-feishu)"
     else
-        print_warning "飞书连接器未找到"
+        print_info "飞书通道插件未安装（可选），安装命令: npm install -g @neomei/opencode-feishu"
     fi
 
     if command -v opencode-qiwei &>/dev/null; then
-        print_success "企微连接器 (opencode-qiwei)"
+        print_success "企微通道插件 (opencode-qiwei)"
     else
-        print_info "企微连接器未安装（可选），安装命令: npm install -g @neomei/opencode-qiwei"
+        print_info "企微通道插件未安装（可选），安装命令: npm install -g @neomei/opencode-qiwei"
     fi
 
-    if [ $issues -gt 0 ]; then
-        print_warning "检测到 $issues 个问题，建议先修复再继续"
-        if ! ask_continue "是否仍要继续配置"; then
-            echo "配置已取消"
-            exit 0
-        fi
-    else
-        print_success "环境检查通过"
-    fi
-}
-
-# ───────────────────────────────────────────────
-# 步骤 2: .env 环境变量配置
-# ───────────────────────────────────────────────
-step2_env_config() {
+    if command -v python3 &>/dev/null; then
     print_step "2/5" "环境变量配置"
 
     ENV_FILE="${HOME_DIR}/.hunqi/.env"
@@ -190,11 +176,12 @@ step2_env_config() {
 # 步骤 3: 飞书配置
 # ───────────────────────────────────────────────
 step3_feishu() {
-    print_step "3/5" "飞书连接器配置"
+    print_step "3/5" "飞书通道（可选）"
 
     if ! command -v opencode-feishu &>/dev/null; then
-        print_warning "opencode-feishu 未安装，跳过飞书配置"
-        print_info "安装命令: npm install -g @neomei/opencode-feishu"
+        print_info "opencode-feishu 未安装，跳过飞书配置"
+        print_info "如需飞书通道，安装命令: npm install -g @neomei/opencode-feishu"
+        print_info "安装后运行: opencode-feishu setup"
         return 0
     fi
 
@@ -281,11 +268,12 @@ step3_feishu() {
 # 步骤 4: 企微配置
 # ───────────────────────────────────────────────
 step4_qiwei() {
-    print_step "4/5" "企业微信连接器配置"
+    print_step "4/5" "企业微信通道（可选）"
 
     if ! command -v opencode-qiwei &>/dev/null; then
-        print_info "opencode-qiwei 未安装（可选），跳过企微配置"
-        print_info "如需企微，安装命令: npm install -g @neomei/opencode-qiwei"
+        print_info "opencode-qiwei 未安装，跳过企微配置"
+        print_info "如需企微通道，安装命令: npm install -g @neomei/opencode-qiwei"
+        print_info "安装后运行: opencode-qiwei setup"
         return 0
     fi
 

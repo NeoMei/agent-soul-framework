@@ -69,8 +69,6 @@
   "author": "NeoMei",
   "license": "MIT",
   "dependencies": {
-    "@neomei/opencode-feishu": "^0.6.3",
-    "@neomei/opencode-qiwei": "latest",
     "@neomei/agent-soul": "^4.5.0",
     "zod": "^3.23.0"
   },
