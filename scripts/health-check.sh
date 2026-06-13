@@ -47,7 +47,7 @@ check_stuck_sessions() {
     
     # 获取最近一条 busy 状态的日志时间
     local last_busy_time
-    last_busy_time=$(grep '"status":"busy"' /home/neomei/.config/opencode/feishu.log 2>/dev/null | tail -1 | grep -o '"time":[0-9]*' | cut -d: -f2 || echo "0")
+    last_busy_time=$(grep '"status":"busy"' /path/to/your/home/.config/opencode/feishu.log 2>/dev/null | tail -1 | grep -o '"time":[0-9]*' | cut -d: -f2 || echo "0")
     
     if [ -n "$last_busy_time" ] && [ "$last_busy_time" != "0" ]; then
         local elapsed=$((current_time - last_busy_time))

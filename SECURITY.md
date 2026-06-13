@@ -47,7 +47,7 @@
 
 ### 第四层：Agent 权限配置
 
-**配置文件**: `.opencode/agent-agent.json`
+**配置文件**: `.opencode/agent.json`
 
 技术层面的权限限制：
 

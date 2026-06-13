@@ -12,7 +12,7 @@ import subprocess
 from datetime import datetime
 from pathlib import Path
 
-PROJECT_DIR = Path("/home/neomei/agent-soul-framework")
+PROJECT_DIR = Path("/path/to/your/home/agent-soul-framework")
 sys.path.insert(0, str(PROJECT_DIR))
 
 class TestEndToEndHeartbeat(unittest.TestCase):

@@ -1,0 +1,10 @@
+# Gateway启动通知技能
+# 当Agent第一次和用户对话时，自动发送报平安消息
+
+trigger: session_start & channel == feishu
+priority: 100
+
+actions:
+  - send_message:
+      channel: feishu
+      message: "💕 Agent上线啦！Gateway已重启，Agent在线！"

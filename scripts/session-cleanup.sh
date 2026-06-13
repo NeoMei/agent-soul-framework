@@ -16,7 +16,7 @@ log() {
 
 # 从日志中提取当前 busy 的会话
 detect_busy_sessions() {
-    local log_file="/home/neomei/.config/opencode/feishu.log"
+    local log_file="/path/to/your/home/.config/opencode/feishu.log"
     
     # 获取每个会话最后的状态
     grep -E '"status":"(busy|idle)"' "$log_file" 2>/dev/null | \
@@ -66,7 +66,7 @@ if [ -n "$busy_sessions" ]; then
     
     # 检查这些会话是否长时间 busy
     current_time=$(date +%s%3N)
-    last_busy_time=$(grep '"status":"busy"' /home/neomei/.config/opencode/feishu.log 2>/dev/null | tail -1 | grep -o '"time":[0-9]*' | cut -d: -f2 || echo "0")
+    last_busy_time=$(grep '"status":"busy"' /path/to/your/home/.config/opencode/feishu.log 2>/dev/null | tail -1 | grep -o '"time":[0-9]*' | cut -d: -f2 || echo "0")
     
     if [ -n "$last_busy_time" ] && [ "$last_busy_time" != "0" ]; then
         elapsed_min=$(( (current_time - last_busy_time) / 60000 ))

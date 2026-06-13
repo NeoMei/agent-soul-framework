@@ -315,11 +315,11 @@ agent-soul-framework/
 │   └── USER.md             # 用户画像
 │
 ├── skills/                 # 技能包（每个子目录一个独立技能）
-│   ├── agent-photo/     # 拍照（即梦 API）
-│   ├── agent-voice/     # 语音合成（TTS）
-│   ├── agent-vision/    # 图片理解
-│   ├── agent-hearing/   # 语音识别
-│   ├── agent-moltbook/  # Moltbook 社交
+│   ├── agent-photo/        # 拍照（即梦 API）
+│   ├── agent-voice/        # 语音合成（TTS）
+│   ├── agent-vision/       # 图片理解
+│   ├── agent-hearing/      # 语音识别
+│   ├── agent-moltbook/     # Moltbook 社交
 │   └── wechat-mp-assistant/# 公众号自动写作
 │
 ├── memory/                 # 持久化记忆
@@ -359,9 +359,9 @@ agent-soul-framework/
 │   ├── write_wechat_article.py # 公众号自动写作
 │   └── ...
 │
-├── AGENTS.md               # Agent行为准则（OpenCode 会话协议）
-├── DREAMS.md               # Agent梦想
-├── EVOLUTION.md            # Agent进化路线
+├── AGENTS.md               # Agent 行为准则（OpenCode 会话协议）
+├── DREAMS.md               # Agent 梦想
+├── EVOLUTION.md            # Agent 进化路线
 └── README.md               # 你在看这个
 ```
 
