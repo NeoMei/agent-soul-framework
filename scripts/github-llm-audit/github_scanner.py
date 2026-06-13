@@ -51,7 +51,7 @@ class GitHubScanner:
 
     def search_repositories(self, language: str, per_page: int = 10, page: int = 1) -> List[Dict[str, Any]]:
         """搜索与 AI Agent / Agent 插件 / Agent Skill 相关的低星个人仓库"""
-        agent_keywords = ["agent", "mcp", "llm", "skill", "ai", "assistant"]
+        agent_keywords = ["agent", "mcp", "llm", "skill", "ai", "plugin"]
         keyword_query = " OR ".join(agent_keywords)
         query = f"language:{language} created:>2026-03-01 stars:<10 fork:false ({keyword_query}) sort:updated"
         url = f"{GITHUB_API_BASE}/search/repositories"
