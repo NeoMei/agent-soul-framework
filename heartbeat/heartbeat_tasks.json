@@ -232,6 +232,41 @@
       "task_id": "daily-todolist",
       "action": "run_script",
       "result": "fail: Script not found: /path/to/your/.hunqi/agent-soul-framework/scripts/generate-todolist.py"
+    },
+    {
+      "timestamp": "2026-06-06T03:00:35.687620+08:00",
+      "date": "2026-06-06",
+      "task_id": "daily-knowledge",
+      "action": "run_script",
+      "result": "ok"
+    },
+    {
+      "timestamp": "2026-06-07T03:00:26.023416+08:00",
+      "date": "2026-06-07",
+      "task_id": "daily-knowledge",
+      "action": "run_script",
+      "result": "ok"
+    },
+    {
+      "timestamp": "2026-06-07T04:00:15.665542+08:00",
+      "date": "2026-06-07",
+      "task_id": "weekly-knowledge",
+      "action": "run_script",
+      "result": "ok"
+    },
+    {
+      "timestamp": "2026-06-08T03:00:26.992284+08:00",
+      "date": "2026-06-08",
+      "task_id": "daily-knowledge",
+      "action": "run_script",
+      "result": "ok"
+    },
+    {
+      "timestamp": "2026-06-09T03:00:30.481167+08:00",
+      "date": "2026-06-09",
+      "task_id": "daily-knowledge",
+      "action": "run_script",
+      "result": "ok"
     }
   ]
 }

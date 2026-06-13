@@ -162,10 +162,10 @@ export async function loadConfig(): Promise<any> {
 }
 
 /**
- * 获取 App Key（固定值，与 clawmessenger 一致）
+ * 获取 App Key（优先从环境变量读取，避免硬编码泄露）
  */
 export function getAppKey(): string {
-  return 'bmdehs6pbyyks';
+  return process.env.CLAW_APP_KEY || '';
 }
 
 /**
