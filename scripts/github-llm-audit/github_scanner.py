@@ -50,7 +50,10 @@ class GitHubScanner:
             time.sleep(wait)
 
     def search_repositories(self, language: str, per_page: int = 10, page: int = 1) -> List[Dict[str, Any]]:
-        query = f"language:{language} created:>2026-03-01 stars:<10 fork:false sort:updated"
+        """搜索与 AI Agent / Agent 插件 / Agent Skill 相关的低星个人仓库"""
+        agent_keywords = ["agent", "mcp", "llm", "skill", "plugin", "assistant"]
+        keyword_query = " OR ".join(agent_keywords)
+        query = f"language:{language} created:>2026-03-01 stars:<10 fork:false ({keyword_query}) sort:updated"
         url = f"{GITHUB_API_BASE}/search/repositories"
         params = {"q": query, "per_page": min(per_page, 15), "page": page}
         data = self._get(url, params=params)
