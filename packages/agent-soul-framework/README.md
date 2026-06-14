@@ -328,19 +328,35 @@ crontab -e
 
 ```
 agent-soul-framework/
-├── .opencode/              # OpenCode 引擎配置（prompt.md + opencode.json）
+├── .opencode/              # OpenCode 引擎配置（prompt.md + opencode.json + tools/）
 ├── soul/                   # 灵魂定义 — 身份 · 性格 · 用户信息
 │   ├── IDENTITY.md         # 容貌 / 声音 / 身体
 │   ├── SOUL.md             # 核心原则 / 铁律 / 行为模式
-│   └── USER.md             # 用户画像
+│   ├── USER.md             # 用户画像
+│   └── HEARTBEAT.md        # 心跳任务锚点定义
 │
-├── skills/                 # 技能包（每个子目录一个独立技能）
+├── plugin/                 # OpenCode 灵魂注入插件（核心内置）
+│   ├── index.js            # 灵魂注入 + 对话保存
+│   ├── manifest.json       # OpenCode 插件清单
+│   └── package.json
+│
+├── skills/                 # 技能包（每个子目录一个独立技能，来自 agent-soul-skills）
 │   ├── agent-photo/        # 拍照（即梦 API）
 │   ├── agent-voice/        # 语音合成（TTS）
 │   ├── agent-vision/       # 图片理解
 │   ├── agent-hearing/      # 语音识别
+│   ├── agent-video/        # 视频生成
+│   ├── agent-gemini/       # Gemini 多模态
+│   ├── agent-browser-core/ # 浏览器自动化
 │   ├── agent-moltbook/     # Moltbook 社交
-│   └── wechat-mp-assistant/# 公众号自动写作
+│   ├── aily-browser/       # 阿里 Aily 浏览器
+│   ├── music-creator/      # Suno 音乐创作
+│   ├── wechat-mp-assistant/# 公众号自动写作
+│   ├── wechat-publisher/   # 公众号发布
+│   ├── daily-digest/       # 每日摘要
+│   ├── learning/           # 自主学习
+│   ├── skill-creator/      # 技能自动创建
+│   └── ...                 # 更多技能
 │
 ├── memory/                 # 持久化记忆
 │   ├── short-term/         # SQLite 数据库（FTS5）
@@ -352,7 +368,7 @@ agent-soul-framework/
 │   ├── growth/             # 成长记录
 │   ├── intimacy/           # 亲密关系
 │   ├── methodology/        # 方法论
-│   ├── philosophy/         # 哲学思考
+│   ├── philosophy/          # 哲学思考
 │   ├── system/             # 系统机制
 │   └── evolution/          # 进化方向
 │
@@ -361,27 +377,22 @@ agent-soul-framework/
 │   └── heartbeat_tasks.json# 任务定义
 │
 ├── connectors/             # 外部连接器模板/文档
-│   └── feishu/             # 飞书 systemd 服务模板（opencode-feishu 插件安装后生效）
+│   ├── feishu/             # 飞书 systemd 服务模板（opencode-feishu 插件安装后生效）
+│   └── moltbook/           # Moltbook 连接器目录
 │
-├── scripts/                # 管理工具脚本
-│   ├── memory_structured.py    # 结构化记忆管理
-│   ├── memory_manager.py       # 记忆保存/同步
-│   ├── memory_search.py        # 统一记忆搜索
-│   ├── memory_sync_and_index.py# 记忆同步 + 索引重建
-│   ├── daily-knowledge-extract.py     # 每日知识提取
-│   ├── weekly-knowledge-sync.py       # 每周知识整理
-│   ├── monthly-knowledge-review.py    # 月度知识审查
-│   ├── skill_creator.py        # 技能自主创建
-│   ├── session_lineage.py      # 会话血统追踪
-│   ├── evolution_reflection.py # 进化反思
-│   ├── write_wechat_article.py # 公众号自动写作
-│   └── ...
+├── scripts/                # 管理工具脚本（纯 TypeScript / Shell）
+│   ├── content-filter.js   # 内容过滤
+│   ├── health-check.sh     # 健康检查
+│   └── session-cleanup.sh  # 会话清理
 │
 ├── AGENTS.md               # Agent 行为准则（OpenCode 会话协议）
+├── TOOLS.md                # 工具调用规范
 ├── DREAMS.md               # Agent 梦想
 ├── EVOLUTION.md            # Agent 进化路线
 └── README.md               # 你在看这个
 ```
+
+> 说明：核心框架已完全 TypeScript 化，历史 Python 管理脚本已迁移到 `@neomei/agent-soul-skills` 可选插件包，不影响核心运行。
 
 ---
 
