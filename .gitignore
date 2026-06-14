@@ -1,7 +1,6 @@
 .venv/
 .env
 node_modules/
-package-lock.json
 
 # 运行时文件（项目目录与开发目录）
 heartbeat/last_run.json
