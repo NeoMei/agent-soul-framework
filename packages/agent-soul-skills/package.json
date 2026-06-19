@@ -1,6 +1,6 @@
 {
   "name": "@neomei/agent-soul-skills",
-  "version": "4.5.2",
+  "version": "4.5.3",
   "description": "魂器可选技能插件包 — 包含需要 Python 脚本的 Agent 技能",
   "type": "module",
   "files": [

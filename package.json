@@ -1,6 +1,6 @@
 {
   "name": "@neomei/agent-soul-monorepo",
-  "version": "4.5.2",
+  "version": "4.5.3",
   "private": true,
   "description": "魂器 — 基于 OpenCode 的 AI Agent 管理层框架（monorepo）",
   "type": "module",
