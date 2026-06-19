@@ -293,12 +293,23 @@ async function cmdSetup() {
   copyExamples(join(cwd, 'memory'));
   copyExamples(join(cwd, 'knowledge'));
 
+  // 复制 OpenCode 配置文件
+  const srcOcDir = join(PACKAGE_ROOT, '.opencode');
+  if (existsSync(srcOcDir)) {
+    if (!existsSync(join(cwd, '.opencode'))) mkdirSync(join(cwd, '.opencode'), { recursive: true });
+    for (const f of ['opencode.json', 'config.json']) {
+      const src = join(srcOcDir, f + '.example');
+      const dst = join(cwd, '.opencode', f);
+      if (existsSync(src) && !existsSync(dst)) { copyFileSync(src, dst); copied++; }
+    }
+  }
+
   // 复制 OpenCode tools (记忆搜索等)
   const srcToolsDir = join(PACKAGE_ROOT, '.opencode', 'tools');
   const dstToolsDir = join(cwd, '.opencode', 'tools');
   if (existsSync(srcToolsDir)) {
     if (!existsSync(dstToolsDir)) mkdirSync(dstToolsDir, { recursive: true });
-    for (const f of ['search-memory.mjs']) {
+    for (const f of ['search-memory.mjs', 'read-plugin.js']) {
       const src = join(srcToolsDir, f);
       const dst = join(dstToolsDir, f);
       if (existsSync(src) && !existsSync(dst)) { copyFileSync(src, dst); copied++; }
