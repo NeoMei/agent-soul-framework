@@ -411,6 +411,36 @@ async function setupChannelInteractive(emoji: string, name: string, cli: string,
 async function setupFeishuInteractive() { return setupChannelInteractive('📱', '飞书', 'opencode-feishu setup', 300000, '终端将显示二维码，用飞书 App 扫码'); }
 async function setupQiweiInteractive() { return setupChannelInteractive('💬', '企微', 'opencode-qiwei setup', 120000, '需要企业微信管理后台的 botId 和 secret'); }
 
+
+async function startFeishu(feishuConfig: string) {
+  if (!existsSync(feishuConfig)) return;
+  try {
+    const { execSync } = await import('node:child_process');
+    const status = execSync('opencode-feishu status 2>/dev/null || echo "stopped"', { encoding: 'utf-8', timeout: 5000 }).trim();
+    if (status.includes('stopped') || status.includes('not running')) {
+      console.log('  📱 飞书桥接: 启动中...');
+      execSync('opencode-feishu start --daemon', { stdio: 'ignore', timeout: 10000 });
+      console.log('  📱 飞书桥接: 已启动 ✅');
+    } else {
+      console.log('  📱 飞书桥接: 运行中 ✅');
+    }
+  } catch { console.log('  📱 飞书桥接: 启动失败'); }
+}
+
+async function startQiwei(qiweiConfig: string) {
+  if (!existsSync(qiweiConfig)) return;
+  try {
+    const { execSync } = await import('node:child_process');
+    const qs = execSync('opencode-qiwei status 2>/dev/null || echo "stopped"', { encoding: 'utf-8', timeout: 5000 }).trim();
+    if (qs.includes('stopped') || qs.includes('not running')) {
+      execSync('opencode-qiwei start', { stdio: 'ignore', timeout: 10000 });
+      console.log('  💬 企微桥接: 已启动 ✅');
+    } else {
+      console.log('  💬 企微桥接: 运行中 ✅');
+    }
+  } catch { /* optional */ }
+}
+
 async function cmdStart() {
   const cwd = process.cwd();
   const hasSoul = existsSync(join(cwd, 'soul', 'SOUL.md'));
