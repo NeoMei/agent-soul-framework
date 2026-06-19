@@ -1,6 +1,6 @@
 {
   "name": "@neomei/agent-soul",
-  "version": "4.5.4",
+  "version": "4.5.5",
   "description": "魂器 OpenCode 插件占位包 — 已合并到 @neomei/agent-soul-framework，无需单独安装",
   "type": "module",
   "main": "index.js",

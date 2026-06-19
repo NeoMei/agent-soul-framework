@@ -36,7 +36,22 @@ if [ -z "$SYSTEM_TEXT" ]; then
     exit 0
 fi
 
-echo "[hook:onSessionIdle] re-injecting soul for session ${SESSION_ID}..."
+# 追加近期对话记忆
+MEMORY_SCRIPT="$SCRIPT_DIR/query-memory.mjs"
+if [ -f "$MEMORY_SCRIPT" ] && [ -n "$SYSTEM_TEXT" ]; then
+  RECENT_MEMORY=$(node "$MEMORY_SCRIPT" "$PROJECT_DIR" 2>/dev/null || echo "")
+  if [ -n "$RECENT_MEMORY" ]; then
+    SYSTEM_TEXT="${SYSTEM_TEXT}
+
+---
+
+## 近期对话记忆
+
+${RECENT_MEMORY}"
+  fi
+fi
+
+echo "[hook:onSessionIdle] re-injecting soul + memory for session ${SESSION_ID}..."
 
 # 使用 jq 或纯 bash 构造 JSON
 if command -v jq &>/dev/null; then

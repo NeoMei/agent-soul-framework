@@ -338,7 +338,7 @@ async function cmdSetup() {
         const srcHooksDir = join(PACKAGE_ROOT, 'connectors', 'feishu', 'hooks');
         if (existsSync(srcHooksDir)) {
           if (!existsSync(hooksDir)) mkdirSync(hooksDir, { recursive: true });
-          for (const f of ['on-session-created.sh', 'on-session-idle.sh']) {
+          for (const f of ['on-session-created.sh', 'on-session-idle.sh', 'query-memory.mjs']) {
             const src = join(srcHooksDir, f);
             const dst = join(hooksDir, f);
             if (existsSync(src) && !existsSync(dst)) {
@@ -373,7 +373,7 @@ async function cmdSetup() {
         const srcHooksDir = join(PACKAGE_ROOT, 'connectors', 'feishu', 'hooks');
         if (existsSync(srcHooksDir)) {
           if (!existsSync(hooksDir)) mkdirSync(hooksDir, { recursive: true });
-          for (const f of ['on-session-created.sh', 'on-session-idle.sh']) {
+          for (const f of ['on-session-created.sh', 'on-session-idle.sh', 'query-memory.mjs']) {
             const src = join(srcHooksDir, f);
             const dst = join(hooksDir, f);
             if (existsSync(src) && !existsSync(dst)) {
