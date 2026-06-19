@@ -18,6 +18,7 @@ import { cli, Strategy } from '@jackwener/opencli/registry';
 import { CliError, AuthRequiredError } from '@jackwener/opencli/errors';
 import * as fs from 'fs';
 import * as path from 'path';
+import { browserFetchBinary } from './shared.js';
 
 const SUNO_API = 'https://studio-api-prod.suno.com';
 
@@ -118,35 +119,12 @@ cli({
     const coverUrl = String(clip.image_url || '');
     const safeTitle = title.replace(/[^\w一-龥\-]/g, '_').slice(0, 40) || clipId;
 
-    // Helper: download binary via browser fetch and return base64
-    async function browserFetchBinary(url) {
-      const result = await page.evaluate(`
-        (async () => {
-          try {
-            const resp = await fetch('${url.replace(/'/g, "\\'")}');
-            if (!resp.ok) return JSON.stringify({ ok: false, status: resp.status });
-            const buf = await resp.arrayBuffer();
-            const bytes = new Uint8Array(buf);
-            let binary = '';
-            const len = bytes.byteLength;
-            for (let i = 0; i < len; i++) {
-              binary += String.fromCharCode(bytes[i]);
-            }
-            return JSON.stringify({ ok: true, data: btoa(binary) });
-          } catch (e) {
-            return JSON.stringify({ ok: false, err: String(e) });
-          }
-        })()
-      `);
-      return JSON.parse(result);
-    }
-
     // ── 4. Download cover ──
     let coverFile = '';
     if (coverUrl) {
       const coverExt = coverUrl.match(/\.([a-zA-Z0-9]+)(?:\?|$)/)?.[1] || 'jpg';
       coverFile = path.join(outputDir, safeTitle + '_' + clipId + '_cover.' + coverExt);
-      const coverResult = await browserFetchBinary(coverUrl);
+      const coverResult = await browserFetchBinary(page, coverUrl);
       if (coverResult.ok) {
         fs.writeFileSync(coverFile, Buffer.from(coverResult.data, 'base64'));
       } else {
@@ -458,7 +436,7 @@ cli({
     
     if (checkWav.ok && checkWav.hasWav && checkWav.wavUrl) {
       console.log('[generate-wav] WAV is available, downloading...');
-      const wavResult = await browserFetchBinary(checkWav.wavUrl);
+      const wavResult = await browserFetchBinary(page, checkWav.wavUrl);
       if (wavResult.ok) {
         audioFile = path.join(outputDir, safeTitle + '_' + clipId + '.wav');
         fs.writeFileSync(audioFile, Buffer.from(wavResult.data, 'base64'));
@@ -471,7 +449,7 @@ cli({
     // Fallback to CDN URL if API doesn't have it yet
     if (!audioFile) {
       const wavUrl = 'https://cdn1.suno.ai/' + clipId + '.wav';
-      const wavResult = await browserFetchBinary(wavUrl);
+      const wavResult = await browserFetchBinary(page, wavUrl);
       if (wavResult.ok) {
         console.log('[generate-wav] WAV downloaded from CDN');
         audioFile = path.join(outputDir, safeTitle + '_' + clipId + '.wav');
@@ -484,7 +462,7 @@ cli({
     if (!audioFile) {
       console.warn('[generate-wav] WAV not available, falling back to MP3');
       const mp3Url = 'https://cdn1.suno.ai/' + clipId + '.mp3';
-      const mp3Result = await browserFetchBinary(mp3Url);
+      const mp3Result = await browserFetchBinary(page, mp3Url);
       if (!mp3Result.ok) {
         throw new CliError('DOWNLOAD_ERROR', 'Failed to download audio: ' + (mp3Result.status || mp3Result.err));
       }

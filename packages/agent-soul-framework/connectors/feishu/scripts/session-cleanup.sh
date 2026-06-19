@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/usr/bin/env bash
 # session-cleanup.sh — 清理消息过多的飞书 session 映射
 # 当 session 消息数超过阈值时，从 feishu-sessions.json 中移除映射
 # 下次对话会自动创建新 session

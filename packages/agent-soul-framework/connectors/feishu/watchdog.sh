@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/usr/bin/env bash
 #
 # 飞书连接器保活守护脚本 (v2 — 使用 opencode-feishu status --json)
 #

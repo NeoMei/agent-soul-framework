@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/usr/bin/env bash
 #
 # restart-all.sh — 重启全部服务（opencode serve + opencode-feishu）
 # 顺序：先重启 serve（保留连接），再重启 feishu（先起后杀）
@@ -34,10 +34,11 @@ if [ -n "$FEISHU_NOTIFY_CHAT_ID" ]; then
         APP_SECRET=$(node -e "console.log(require('$FEISHU_CONFIG').appSecret || '')" 2>/dev/null)
         
         if [ -n "$APP_ID" ] && [ -n "$APP_SECRET" ]; then
-            # 获取 tenant_access_token
-            TOKEN_RESPONSE=$(curl -s -X POST "https://open.feishu.cn/open-apis/auth/v3/tenant_access_token/internal" \
+            # 获取 tenant_access_token（JSON 体通过 stdin 传入，避免 secret 出现在 ps 中）
+            TOKEN_RESPONSE=$(printf '{"app_id":"%s","app_secret":"%s"}' "$APP_ID" "$APP_SECRET" | \
+            curl -s -X POST "https://open.feishu.cn/open-apis/auth/v3/tenant_access_token/internal" \
                 -H "Content-Type: application/json" \
-                -d "{\"app_id\":\"$APP_ID\",\"app_secret\":\"$APP_SECRET\"}" 2>/dev/null)
+                -d @- 2>/dev/null)
             
             TOKEN=$(echo "$TOKEN_RESPONSE" | node -e "
                 let d = '';

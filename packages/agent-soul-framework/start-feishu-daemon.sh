@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/usr/bin/env bash
 #
 # start-feishu-daemon.sh - 稳定启动飞书连接器（守护进程模式）
 # 解决终端超时信号导致的进程终止问题
@@ -100,7 +100,7 @@ done
 # setsid: 创建新会话，忽略 SIGHUP
 # nohup: 忽略挂起信号
 FEISHU_BIN="$(command -v opencode-feishu || echo "$HOME/.npm-global/bin/opencode-feishu")"
-nohup setsid "$FEISHU_BIN" start >> "$LOG_FILE" 2>&1 &
+nohup "$FEISHU_BIN" start >> "$LOG_FILE" 2>&1 &
 disown %1 2>/dev/null || true
 
 # 等待进程真正启动并验证

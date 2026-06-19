@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/usr/bin/env bash
 # 魂器挂起/唤醒钩子 - 重启核心和所有频道
 
 case "$1" in

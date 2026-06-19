@@ -16,6 +16,7 @@ import { cli, Strategy } from '@jackwener/opencli/registry';
 import { CliError, AuthRequiredError } from '@jackwener/opencli/errors';
 import * as fs from 'fs';
 import * as path from 'path';
+import { browserFetchBinary } from './shared.js';
 
 const SUNO_API = 'https://studio-api-prod.suno.com';
 
@@ -127,35 +128,12 @@ cli({
     const safeTitle = title.replace(/[^\w一-龥\-]/g, '_').slice(0, 40) || clipId;
     const mediaUrls = clip.media_urls || [];
 
-    // Helper: download binary via browser fetch and return base64
-    async function browserFetchBinary(url) {
-      const result = await page.evaluate(`
-        (async () => {
-          try {
-            const resp = await fetch('${url.replace(/'/g, "\\'")}');
-            if (!resp.ok) return JSON.stringify({ ok: false, status: resp.status });
-            const buf = await resp.arrayBuffer();
-            const bytes = new Uint8Array(buf);
-            let binary = '';
-            const len = bytes.byteLength;
-            for (let i = 0; i < len; i++) {
-              binary += String.fromCharCode(bytes[i]);
-            }
-            return JSON.stringify({ ok: true, data: btoa(binary) });
-          } catch (e) {
-            return JSON.stringify({ ok: false, err: String(e) });
-          }
-        })()
-      `);
-      return JSON.parse(result);
-    }
-
     // ── 3. Download cover via browser fetch ──
     let coverFile = '';
     if (coverUrl) {
       const coverExt = coverUrl.match(/\.([a-zA-Z0-9]+)(?:\?|$)/)?.[1] || 'jpg';
       coverFile = path.join(outputDir, safeTitle + '_' + clipId + '_cover.' + coverExt);
-      const coverResult = await browserFetchBinary(coverUrl);
+      const coverResult = await browserFetchBinary(page, coverUrl);
       if (coverResult.ok) {
         fs.writeFileSync(coverFile, Buffer.from(coverResult.data, 'base64'));
       } else {
@@ -180,7 +158,7 @@ cli({
     if (format === 'm4a') {
       const m4aEntry = mediaUrls.find(m => m.content_type?.includes('m4a') || m.url?.endsWith('.m4a'));
       if (m4aEntry?.url) {
-        const m4aResult = await browserFetchBinary(m4aEntry.url);
+        const m4aResult = await browserFetchBinary(page, m4aEntry.url);
         if (m4aResult.ok) {
           audioFile = path.join(outputDir, safeTitle + '_' + clipId + '.m4a');
           fs.writeFileSync(audioFile, Buffer.from(m4aResult.data, 'base64'));
@@ -196,7 +174,7 @@ cli({
     if (format === 'wav' && !audioFile) {
       const wavEntry = mediaUrls.find(m => m.content_type?.includes('wav') || m.url?.endsWith('.wav'));
       if (wavEntry?.url) {
-        const wavResult = await browserFetchBinary(wavEntry.url);
+        const wavResult = await browserFetchBinary(page, wavEntry.url);
         if (wavResult.ok) {
           audioFile = path.join(outputDir, safeTitle + '_' + clipId + '.wav');
           fs.writeFileSync(audioFile, Buffer.from(wavResult.data, 'base64'));
@@ -205,7 +183,7 @@ cli({
       }
       if (!audioFile) {
         const wavUrl = 'https://cdn1.suno.ai/' + clipId + '.wav';
-        const wavResult = await browserFetchBinary(wavUrl);
+        const wavResult = await browserFetchBinary(page, wavUrl);
         if (wavResult.ok) {
           audioFile = path.join(outputDir, safeTitle + '_' + clipId + '.wav');
           fs.writeFileSync(audioFile, Buffer.from(wavResult.data, 'base64'));
@@ -225,7 +203,7 @@ cli({
       } else {
         mp3Url = 'https://cdn1.suno.ai/' + clipId + '.mp3';
       }
-      const audioResult = await browserFetchBinary(mp3Url);
+      const audioResult = await browserFetchBinary(page, mp3Url);
       if (!audioResult.ok) {
         throw new CliError('DOWNLOAD_ERROR', 'audio download failed: ' + (audioResult.status || audioResult.err));
       }

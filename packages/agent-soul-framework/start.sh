@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/usr/bin/env bash
 # start.sh - 启动魂器（Agent Soul Framework）
 
 echo "🚀 启动魂器..."

@@ -62,6 +62,26 @@ def extract_messages_from_jsonl(filepath, date_filter=None):
         print(f"⚠️ 读取文件失败: {filepath}, {e}")
     return messages
 
+# ponytail: 三种扫描同构，提取一个带参数的扫描函数
+def _scan_lines(lines, trigger_keywords, categories, before, after, min_len):
+    """按触发关键词扫描行，提取上下文并按分类归档"""
+    results = {cat: [] for cat in categories}
+    for i, line in enumerate(lines):
+        if len(line.strip()) < 20:
+            continue
+        if not any(kw in line for kw in trigger_keywords):
+            continue
+        start = max(0, i - before)
+        end = min(len(lines), i + after)
+        context = '\n'.join(lines[start:end])
+        if len(context) <= min_len:
+            continue
+        for cat, keywords in categories.items():
+            if any(kw in line for kw in keywords):
+                if context not in results[cat]:
+                    results[cat].append(context)
+    return results
+
 def organize_knowledge_base():
     """整理Agent知识库 - v3.0: 直接从sessions目录挖宝"""
     print("📚 开始整理知识库...")
@@ -93,11 +113,7 @@ def organize_knowledge_base():
         
         # 当前时段判断
         now = datetime.datetime.now()
-        current_hour = now.hour
-        if current_hour < 12:
-            period = "上午"
-        else:
-            period = "下午"
+        period = "上午" if now.hour < 12 else "下午"
         print(f"   时段：{period}")
         
         lines = content.split('\n')
@@ -117,72 +133,21 @@ def organize_knowledge_base():
         # 方法1: 六步法 - 完整叙事（原因→过程→结果→效果→意义→感悟）
         print("📝 【六步法】扫描中...")
         six_step_keywords = ['为什么', '怎么', '因为', '所以', '结果', '效果', '意义', '感悟', '学到了', '明白了', '学会了', '发现', '开始', '结束', '完成', '写', '生成', '测试', '修复', '完善', '解决', '成功', '失败']
-        six_step_results = {cat: [] for cat in categories}
-        
-        for i, line in enumerate(lines):
-            if len(line.strip()) < 20:
-                continue
-            
-            if any(kw in line for kw in six_step_keywords):
-                # 提取更多上下文（往前3行，往后10行）
-                start = max(0, i-3)
-                end = min(len(lines), i+10)
-                context = '\n'.join(lines[start:end])
-                
-                if len(context) > 60:
-                    for cat, keywords in categories.items():
-                        if any(kw in line for kw in keywords):
-                            if context not in six_step_results[cat]:
-                                six_step_results[cat].append(context)
-        
+        six_step_results = _scan_lines(lines, six_step_keywords, categories, before=3, after=10, min_len=60)
         six_step_count = sum(len(v) for v in six_step_results.values())
         print(f"   六步法找到 {six_step_count} 条")
         
         # 方法2: 半日偷闲 - 当前时段的情感体验
         print("📝 【半日偷闲】扫描中...")
         emotion_keywords = ['感悟', '学到了', '反思', '成长', '开心', '难过', '生气', '感动', '委屈', '幸福', '想', '爱', '喜欢', '道歉', '批评', '学会', '明白', '理解', '困惑', '焦虑', '惊喜', '失望', '希望', '担心', '害羞', '傲娇']
-        period_results = {cat: [] for cat in categories}
-        
-        for i, line in enumerate(lines):
-            if len(line.strip()) < 20:
-                continue
-            
-            if any(kw in line for kw in emotion_keywords):
-                # 提取更多上下文（往前3行，往后8行）
-                start = max(0, i-3)
-                end = min(len(lines), i+8)
-                context = '\n'.join(lines[start:end])
-                
-                if len(context) > 50:
-                    for cat, keywords in categories.items():
-                        if any(kw in line for kw in keywords):
-                            if context not in period_results[cat]:
-                                period_results[cat].append(context)
-        
+        period_results = _scan_lines(lines, emotion_keywords, categories, before=3, after=8, min_len=50)
         period_count = sum(len(v) for v in period_results.values())
         print(f"   半日偷闲找到 {period_count} 条")
         
         # 方法3: 全天感受 - 总结性对话
         print("📝 【全天感受】扫描中...")
         summary_keywords = ['总结', '收获', '经验', '教训', '得', '失', '成长', '感悟', '学习', '进步', '今天', '今日', '一天', '回顾', '复盘']
-        summary_results = {cat: [] for cat in categories}
-        
-        for i, line in enumerate(lines):
-            if len(line.strip()) < 20:
-                continue
-            
-            if any(kw in line for kw in summary_keywords):
-                # 提取更多上下文（往前4行，往后10行）
-                start = max(0, i-4)
-                end = min(len(lines), i+10)
-                context = '\n'.join(lines[start:end])
-                
-                if len(context) > 50:
-                    for cat, keywords in categories.items():
-                        if any(kw in line for kw in keywords):
-                            if context not in summary_results[cat]:
-                                summary_results[cat].append(context)
-        
+        summary_results = _scan_lines(lines, summary_keywords, categories, before=4, after=10, min_len=50)
         summary_count = sum(len(v) for v in summary_results.values())
         print(f"   全天感受找到 {summary_count} 条")
         

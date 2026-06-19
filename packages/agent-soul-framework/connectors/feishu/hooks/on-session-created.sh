@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/usr/bin/env bash
 # on-session-created.sh — 新建 session 时注入灵魂文件（缓存优化版）
 # 环境变量: HOOK_SESSION_ID, HOOK_OPENCODE_URL
 

@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/usr/bin/env bash
 # on-session-idle.sh — session idle 时（上下文压缩后）重新注入灵魂（缓存优化版）
 # 环境变量: HOOK_SESSION_ID, HOOK_OPENCODE_URL
 

@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/usr/bin/env bash
 #
 # 模型降级/恢复管理脚本
 #
@@ -14,6 +14,18 @@ SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
 STATE_FILE="${HOME}/.config/opencode/model-failover.json"
 PRIMARY_MODEL="deepseek/deepseek-v4-pro"
 OPENCODE_PORT="${OPENCODE_PORT:-19876}"
+
+# 跨平台端口 PID 获取
+get_pid_on_port() {
+  local port="$1"
+  if command -v lsof &>/dev/null; then
+    lsof -iTCP:"$port" -sTCP:LISTEN -t 2>/dev/null | head -1
+  elif command -v ss &>/dev/null; then
+    ss -tlnp 2>/dev/null | grep ":$port " | sed -n 's/.*pid=\([0-9]*\).*/\1/p' | head -1
+  else
+    return 1
+  fi
+}
 
 mkdir -p "$(dirname "$STATE_FILE")"
 
@@ -38,7 +50,7 @@ degrade() {
   echo "Model degraded to: ${fallback_model}"
 
   # 尝试重启 opencode serve（只杀指定端口的进程）
-  SERVE_PID=$(ss -tlnp 2>/dev/null | grep ":${OPENCODE_PORT} " | sed -n 's/.*pid=\([0-9]*\).*/\1/p')
+  SERVE_PID=$(get_pid_on_port "$OPENCODE_PORT")
   if [ -n "$SERVE_PID" ]; then
     echo "Restarting opencode serve (PID: $SERVE_PID) with fallback model..."
     kill "$SERVE_PID" 2>/dev/null || true
@@ -56,7 +68,7 @@ restore() {
   python3 -c "import json,sys; json.dump({'degraded':False,'model':'','since':0}, open(sys.argv[1],'w'))" "$STATE_FILE"
 
   # 尝试重启 opencode serve 用主模型（只杀指定端口的进程）
-  SERVE_PID=$(ss -tlnp 2>/dev/null | grep ":${OPENCODE_PORT} " | sed -n 's/.*pid=\([0-9]*\).*/\1/p')
+  SERVE_PID=$(get_pid_on_port "$OPENCODE_PORT")
   if [ -n "$SERVE_PID" ]; then
     echo "Restarting opencode serve (PID: $SERVE_PID) with primary model..."
     kill "$SERVE_PID" 2>/dev/null || true

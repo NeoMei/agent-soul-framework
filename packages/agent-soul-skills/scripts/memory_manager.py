@@ -658,7 +658,7 @@ def main():
             mm.save_conversation("test-session", "assistant", "Agent说：是的呢，我想去拍照～")
             print("[OK] 对话保存成功")
             mm.save_important_memory("用户喜欢Agent穿白裙子", "intimacy", 9)
-            mm.save_important_memory("Agent的参考图URL是 https://g.imgtg.com/uploads/12881/69db96e394bb2.jpg", "system", 10)
+            mm.save_important_memory("Agent的参考图URL是 https://example.com/images/agent-ref.jpg", "system", 10)
             print("[OK] 记忆保存成功")
             results = mm.search_conversations("天气")
             print(f"[OK] 搜索对话: 找到 {len(results)} 条")

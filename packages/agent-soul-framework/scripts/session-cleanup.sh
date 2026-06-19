@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/usr/bin/env bash
 #
 # 会话清理脚本
 # 用途：强制重置 stuck/busy 状态的会话，无需重启服务

@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/usr/bin/env bash
 #
 # restart-feishu.sh — 重启 opencode-feishu（飞书连接器）
 # 策略：先起后杀 — 先启动新实例，再停止旧实例，避免飞书连接永久中断

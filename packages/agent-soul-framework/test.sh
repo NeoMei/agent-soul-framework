@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/usr/bin/env bash
 # test.sh - 测试魂器（Agent Soul Framework）
 
 echo "🧪 测试魂器..."

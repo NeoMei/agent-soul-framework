@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/usr/bin/env bash
 # verify.sh - 验证魂器是否正确加载
 
 echo "🔍 验证魂器配置..."

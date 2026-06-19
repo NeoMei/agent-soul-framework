@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/usr/bin/env bash
 # hunqi.sh - 魂器启动脚本
 
 echo "🚀 启动魂器（Agent Soul Framework）..."

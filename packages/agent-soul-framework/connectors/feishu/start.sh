@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/usr/bin/env bash
 #
 # hunqi-feishu - 魂器飞书连接器启动脚本
 # 只启动 opencode-feishu 插件，依赖 hunqi-core 提供的 OpenCode server

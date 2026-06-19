@@ -1,7 +1,7 @@
 /**
  * 魂器 CLI — @neomei/agent-soul-framework
  *
- * 用法: hunqi <command> [options]
+ * 用法: agent-soul-framework <command> [options]
  */
 
 import { existsSync, readFileSync, mkdirSync, copyFileSync, writeFileSync, readdirSync } from 'node:fs';
@@ -18,7 +18,7 @@ function findSkillsPackage(): string | null {
   const candidates = [
     join(PACKAGE_ROOT, '..', 'agent-soul-skills'),
     join(PACKAGE_ROOT, 'node_modules', '@neomei', 'agent-soul-skills'),
-    join(process.env.HOME || '/', '.config', 'hunqi', 'skills'),
+    join(process.env.HOME || '/', '.config', 'agent-soul-framework', 'skills'),
   ];
   for (const root of candidates) {
     if (existsSync(join(root, 'skills', 'skill-creator', 'scripts', 'skill_creator.py'))) return root;
@@ -74,7 +74,7 @@ interface SearchResult {
 }
 
 async function cmdSearch(query: string) {
-  if (!query) { console.log('用法: hunqi search <关键词>'); return; }
+  if (!query) { console.log('用法: agent-soul-framework search <关键词>'); return; }
   try {
     const { searchAll } = await import('../memory/search.js');
     const results = searchAll(query) as SearchResult[];
@@ -98,19 +98,19 @@ async function cmdMemory(args: string[]) {
       const stats = mem.getMemoryStats?.() || {};
       console.log(`MEMORY.md: ${stats.pct ?? 0}% (${stats.used ?? 0}/2200 chars), entries: ${stats.entries?.length ?? 0}`);
     } else if (sub === 'add') {
-      if (!args[1]) { console.log('用法: hunqi memory add "内容"'); } else {
+      if (!args[1]) { console.log('用法: agent-soul-framework memory add "内容"'); } else {
         mem.addMemory?.(args[1]);
         console.log('已添加');
       }
     } else if (sub === 'search') {
-      if (!args[1]) { console.log('用法: hunqi memory search "关键词"'); } else {
+      if (!args[1]) { console.log('用法: agent-soul-framework memory search "关键词"'); } else {
         const hits = mem.search(args[1], 10) || [];
         for (const h of hits) {
           console.log('  [' + h.date + '] ' + (h.summary || '').slice(0, 200));
         }
       }
     } else {
-      console.log('用法: hunqi memory <status|add|search>');
+      console.log('用法: agent-soul-framework memory <status|add|search>');
     }
     mem.close();
   } catch(e: any) { console.error('记忆操作失败:', e.message); }
@@ -126,7 +126,7 @@ async function cmdKnowledge(args: string[]) {
       const { generateIndex } = await import('../knowledge/index.js');
       generateIndex();
     } else {
-      console.log('用法: hunqi knowledge <daily|index>');
+      console.log('用法: agent-soul-framework knowledge <daily|index>');
     }
   } catch(e: any) { console.error('知识操作失败:', e.message); }
 }
@@ -150,156 +150,13 @@ async function cmdSkillCreate(args: string[]) {
 async function cmdInteractive() {
   try {
     const { execSync } = await import('node:child_process');
-    const script = join(PACKAGE_ROOT, 'hunqi.sh');
+    const script = join(PACKAGE_ROOT, 'agent-soul-framework.sh');
     if (existsSync(script)) {
       execSync('bash ' + script + ' interactive', { cwd: process.cwd(), stdio: 'inherit' });
       return;
     }
   } catch {}
-  console.log('请在魂器项目目录下运行: cd agent-soul-framework && ./hunqi.sh interactive');
-}
-
-async function cmdInit(dirName: string) {
-  if (!dirName) { console.log('用法: hunqi init <项目目录名>'); return; }
-  const targetDir = join(process.cwd(), dirName);
-
-  const dirs = [
-    'soul', 'skills', 'knowledge', 'memory/short-term', 'memory/long-term',
-    'memory/vector', 'heartbeat', 'scripts', 'connectors/feishu', 'connectors/moltbook',
-    '.opencode', 'config', 'logs', 'memory/cron-output', 'memory/.locks', 'memory/.queue',
-    'plugin',
-  ];
-
-  for (const d of dirs) mkdirSync(join(targetDir, d), { recursive: true });
-
-  const copyPairs: [string, string][] = [
-    ['soul/SOUL.md.example', 'soul/SOUL.md'],
-    ['soul/IDENTITY.md.example', 'soul/IDENTITY.md'],
-    ['soul/USER.md.example', 'soul/USER.md'],
-    ['soul/HEARTBEAT.md.example', 'soul/HEARTBEAT.md'],
-    ['.opencode/opencode.json.example', '.opencode/opencode.json'],
-    ['.opencode/prompt.md.example', '.opencode/prompt.md'],
-    ['.opencode/tools/read-plugin.js', '.opencode/tools/read-plugin.js'],
-    ['plugin/index.js', 'plugin/index.js'],
-    ['plugin/manifest.json', 'plugin/manifest.json'],
-    ['plugin/package.json', 'plugin/package.json'],
-    ['memory/MEMORY.md.example', 'memory/MEMORY.md'],
-    ['AGENTS.md.example', 'AGENTS.md'],
-    ['TOOLS.md.example', 'TOOLS.md'],
-    ['heartbeat/heartbeat_tasks.json', 'heartbeat/heartbeat_tasks.json'],
-  ];
-  for (const [src, dst] of copyPairs) {
-    const srcPath = join(PACKAGE_ROOT, src);
-    const dstPath = join(targetDir, dst);
-    if (existsSync(srcPath)) {
-      mkdirSync(dirname(dstPath), { recursive: true });
-      copyFileSync(srcPath, dstPath);
-    }
-  }
-
-  const skillsRoot = findSkillsPackage();
-  if (skillsRoot) {
-    const skillsDir = join(skillsRoot, 'skills');
-    if (existsSync(skillsDir)) {
-      for (const skill of readdirSync(skillsDir)) {
-        const srcSkill = join(skillsDir, skill);
-        if (!existsSync(join(srcSkill, 'SKILL.md'))) continue;
-        const dstSkill = join(targetDir, 'skills', skill);
-        mkdirSync(dstSkill, { recursive: true });
-        const subs = readdirSync(srcSkill, { withFileTypes: true });
-        for (const s of subs) {
-          if (s.isFile()) {
-            copyFileSync(join(srcSkill, s.name), join(dstSkill, s.name));
-          } else if (s.isDirectory() && s.name === 'scripts') {
-            mkdirSync(join(dstSkill, s.name), { recursive: true });
-            for (const ss of readdirSync(join(srcSkill, s.name), { withFileTypes: true })) {
-              if (ss.isFile()) {
-                copyFileSync(join(srcSkill, s.name, ss.name), join(dstSkill, s.name, ss.name));
-              }
-            }
-          }
-        }
-      }
-    }
-  }
-
-  const knowledgeDir = join(PACKAGE_ROOT, 'knowledge');
-  if (existsSync(knowledgeDir)) {
-    for (const item of readdirSync(knowledgeDir)) {
-      const srcPath = join(knowledgeDir, item);
-      if (!existsSync(srcPath) || item.startsWith('.')) continue;
-      if (item.endsWith('.example')) {
-        const dstPath = join(targetDir, 'knowledge', item.replace('.example', ''));
-        copyFileSync(srcPath, dstPath);
-      }
-    }
-    const cats = ['body', 'emotion', 'evolution', 'growth', 'intimacy', 'methodology', 'philosophy', 'system'];
-    for (const cat of cats) {
-      const catDir = join(knowledgeDir, cat);
-      if (!existsSync(catDir)) continue;
-      mkdirSync(join(targetDir, 'knowledge', cat), { recursive: true });
-      for (const item of readdirSync(catDir)) {
-        if (item.endsWith('.example')) {
-          const srcPath = join(catDir, item);
-          const dstPath = join(targetDir, 'knowledge', cat, item.replace('.example', ''));
-          copyFileSync(srcPath, dstPath);
-        }
-      }
-    }
-  }
-
-  writeFileSync(join(targetDir, '.env'),
-    '# 魂器环境配置\n' +
-    '# 编辑以下内容填入你的 API Key\n\n' +
-    'DASHSCOPE_API_KEY=\n' +
-    'FEISHU_APP_ID=\n' +
-    'FEISHU_APP_SECRET=\n' +
-    'MOLTBOOK_API_KEY=\n' +
-    'WECHAT_APP_ID=\n' +
-    'WECHAT_APP_SECRET=\n' +
-    'JIMENG_API_KEY=\n'
-  );
-
-  console.log('\n  ✅ 项目 "' + dirName + '" 已创建');
-
-  if (process.argv.includes('--setup-cron')) {
-    try {
-      const { execSync } = await import('node:child_process');
-      const cronLine = '*/30 * * * * cd ' + targetDir + ' && ./heartbeat_wrapper.sh';
-      const existing = execSync('crontab -l 2>/dev/null || echo ""', { encoding: 'utf-8' });
-      if (!existing.includes('heartbeat_wrapper.sh')) {
-        const newCron = existing.trim() + (existing.trim() ? '\n' : '') + cronLine + '\n';
-        execSync('printf "%s" "$1" | crontab -', { encoding: 'utf-8', env: { ...process.env, '1': newCron } });
-        console.log('  📅 crontab 已配置（每 30 分钟执行心跳）');
-      }
-    } catch {}
-  }
-
-  try {
-    const { execSync } = await import('node:child_process');
-    if (existsSync(join(targetDir, 'node_modules', '.bin', 'hunqi-heartbeat'))) {
-      execSync(join(targetDir, 'node_modules', '.bin', 'hunqi-heartbeat'), {
-        cwd: targetDir, stdio: 'pipe', timeout: 120000, encoding: 'utf-8'
-      });
-    } else {
-      execSync('hunqi-heartbeat', { cwd: targetDir, stdio: 'pipe', timeout: 120000, encoding: 'utf-8' });
-    }
-    console.log('  💓 首次心跳已执行（记忆系统初始化完成）');
-  } catch {}
-
-  console.log('\n  下一步:');
-  console.log('    cd ' + dirName);
-  console.log('    hunqi interactive          # 启动交互式 TUI');
-  console.log('    hunqi status               # 查看系统状态');
-
-  if (!process.argv.includes('--setup-cron')) {
-    const cronCmd = '*/30 * * * * cd ' + targetDir + ' && ./heartbeat_wrapper.sh';
-    console.log('\n  💡 配置心跳（记忆自动同步）:');
-    console.log('    hunqi init --setup-cron    # 下次初始化时加上此参数');
-    console.log('    或 crontab -e 添加: ' + cronCmd);
-  }
-
-  console.log();
+  console.log('请在魂器项目目录下运行: cd agent-soul-framework && ./agent-soul-framework.sh interactive');
 }
 
 async function cmdConfig() {
@@ -314,7 +171,7 @@ async function cmdDoctor() {
   const cwd = process.cwd();
   let checkDir = cwd;
   if (!existsSync(join(checkDir, 'soul', 'SOUL.md'))) {
-    const defaultDir = join(process.env.HOME || '~', '.hunqi');
+    const defaultDir = join(process.env.HOME || '~', '.agent-soul-framework');
     if (existsSync(join(defaultDir, 'soul', 'SOUL.md'))) {
       checkDir = defaultDir;
     }
@@ -367,7 +224,7 @@ async function cmdDoctor() {
   const hasMemory = existsSync(join(checkDir, 'memory', 'MEMORY.md'));
   const hasDb = existsSync(join(checkDir, 'memory', 'short-term', 'conversations.db'));
   console.log('  项目目录:      ' + checkDir);
-  console.log('  项目灵魂:      ' + (hasSoul ? '✅' : '⚠️  未初始化，运行 hunqi start'));
+  console.log('  项目灵魂:      ' + (hasSoul ? '✅' : '⚠️  未初始化，运行 agent-soul-framework start'));
   console.log('  记忆系统:      ' + (hasMemory ? '✅' : '⚠️ ') + 'MEMORY.md | ' + (hasDb ? '✅' : '⚠️ ') + 'conversations.db');
 
   if (hasDb) {
@@ -387,7 +244,7 @@ async function cmdDoctor() {
     if (cron.includes('heartbeat_wrapper')) {
       console.log('  心跳调度:      crontab 已配置 ✅');
     } else {
-      console.log('  心跳调度:      未配置 ⚠️  (运行 hunqi start 自动配置)');
+      console.log('  心跳调度:      未配置 ⚠️  (运行 agent-soul-framework start 自动配置)');
     }
   } catch { console.log('  心跳调度:      检查失败'); }
 
@@ -400,13 +257,13 @@ async function cmdDoctor() {
     console.log('  环境变量:      .env 不存在 ⚠️  (cp .env.example .env)');
   }
 
-  console.log('\n  💡 一键修复: hunqi start\n');
+  console.log('\n  💡 一键修复: agent-soul-framework start\n');
 }
 
 async function cmdSetup() {
   let cwd = process.cwd();
   if (!existsSync(join(cwd, 'soul', 'SOUL.md'))) {
-    const defaultDir = join(process.env.HOME || '~', '.hunqi');
+    const defaultDir = join(process.env.HOME || '~', '.agent-soul-framework');
     if (existsSync(join(defaultDir, 'soul', 'SOUL.md'))) {
       cwd = defaultDir;
     }
@@ -414,7 +271,7 @@ async function cmdSetup() {
   console.log('\n  🔧 魂器自动配置\n  ' + '─'.repeat(50));
 
   if (!existsSync(join(cwd, 'soul')) && !existsSync(join(cwd, 'soul', 'SOUL.md'))) {
-    console.log('  ⚠️  不在魂器项目目录，请先 hunqi init my-project && cd my-project');
+    console.log('  ⚠️  不在魂器项目目录，请先 agent-soul-framework setup');
     return;
   }
 
@@ -445,10 +302,10 @@ async function cmdSetup() {
 
   try {
     const { execSync } = await import('node:child_process');
-    if (existsSync(join(cwd, 'node_modules', '.bin', 'hunqi-heartbeat'))) {
-      execSync(join(cwd, 'node_modules', '.bin', 'hunqi-heartbeat'), { cwd, stdio: 'pipe', timeout: 120000, encoding: 'utf-8' });
+    if (existsSync(join(cwd, 'node_modules', '.bin', 'agent-soul-heartbeat'))) {
+      execSync(join(cwd, 'node_modules', '.bin', 'agent-soul-heartbeat'), { cwd, stdio: 'pipe', timeout: 120000, encoding: 'utf-8' });
     } else {
-      execSync('hunqi-heartbeat', { cwd, stdio: 'pipe', timeout: 120000, encoding: 'utf-8' });
+      execSync('agent-soul-heartbeat', { cwd, stdio: 'pipe', timeout: 120000, encoding: 'utf-8' });
     }
     console.log('  💓 记忆系统: 已初始化');
   } catch { console.log('  💓 记忆系统: 跳过'); }
@@ -529,7 +386,7 @@ async function cmdSetup() {
   console.log('    📅 心跳调度    — crontab */30 分钟');
   console.log('    📱 飞书连接    — 配置文件就绪');
   if (existsSync(qiweiConfig)) console.log('    💬 企微连接    — 配置文件就绪');
-  console.log('\n  如需检查状态: hunqi doctor');
+  console.log('\n  如需检查状态: agent-soul-framework doctor');
 }
 
 async function askYN(prompt: string) {
@@ -541,52 +398,18 @@ async function askYN(prompt: string) {
   return answer === '' || answer === 'y' || answer === 'yes';
 }
 
-async function setupFeishuInteractive() {
-  console.log('\n  📱 飞书配置 — 终端将显示二维码，用飞书 App 扫码\n');
+// ponytail: merged setupFeishuInteractive + setupQiweiInteractive
+async function setupChannelInteractive(emoji: string, name: string, cli: string, timeout: number, hint: string) {
+  console.log(`\n  ${emoji} ${name}配置 — ${hint}\n`);
   try {
     const { execSync } = await import('node:child_process');
-    execSync('opencode-feishu setup', { stdio: 'inherit', timeout: 300000 });
-    console.log('  ✅ 飞书配置完成\n');
-  } catch { console.log('  ⚠️  飞书配置跳过（手动: opencode-feishu setup）\n'); }
+    execSync(cli, { stdio: 'inherit', timeout });
+    console.log(`  ✅ ${name}配置完成\n`);
+  } catch { console.log(`  ⚠️  ${name}配置跳过（手动: ${cli}）\n`); }
 }
 
-async function setupQiweiInteractive() {
-  console.log('\n  💬 企微配置 — 需要企业微信管理后台的 botId 和 secret\n');
-  try {
-    const { execSync } = await import('node:child_process');
-    execSync('opencode-qiwei setup', { stdio: 'inherit', timeout: 120000 });
-    console.log('  ✅ 企微配置完成\n');
-  } catch { console.log('  ⚠️  企微配置跳过（手动: opencode-qiwei setup）\n'); }
-}
-
-async function startFeishu(feishuConfig: string) {
-  if (!existsSync(feishuConfig)) return;
-  try {
-    const { execSync } = await import('node:child_process');
-    const status = execSync('opencode-feishu status 2>/dev/null || echo "stopped"', { encoding: 'utf-8', timeout: 5000 }).trim();
-    if (status.includes('stopped') || status.includes('not running')) {
-      console.log('  📱 飞书桥接: 启动中...');
-      execSync('opencode-feishu start --daemon', { stdio: 'ignore', timeout: 10000 });
-      console.log('  📱 飞书桥接: 已启动 ✅');
-    } else {
-      console.log('  📱 飞书桥接: 运行中 ✅');
-    }
-  } catch { console.log('  📱 飞书桥接: 启动失败'); }
-}
-
-async function startQiwei(qiweiConfig: string) {
-  if (!existsSync(qiweiConfig)) return;
-  try {
-    const { execSync } = await import('node:child_process');
-    const qs = execSync('opencode-qiwei status 2>/dev/null || echo "stopped"', { encoding: 'utf-8', timeout: 5000 }).trim();
-    if (qs.includes('stopped') || qs.includes('not running')) {
-      execSync('opencode-qiwei start', { stdio: 'ignore', timeout: 10000 });
-      console.log('  💬 企微桥接: 已启动 ✅');
-    } else {
-      console.log('  💬 企微桥接: 运行中 ✅');
-    }
-  } catch { /* optional */ }
-}
+async function setupFeishuInteractive() { return setupChannelInteractive('📱', '飞书', 'opencode-feishu setup', 300000, '终端将显示二维码，用飞书 App 扫码'); }
+async function setupQiweiInteractive() { return setupChannelInteractive('💬', '企微', 'opencode-qiwei setup', 120000, '需要企业微信管理后台的 botId 和 secret'); }
 
 async function cmdStart() {
   const cwd = process.cwd();
@@ -594,7 +417,9 @@ async function cmdStart() {
 
   if (!hasSoul) {
     console.log('\n  📝 首次运行，自动初始化...');
-    await cmdInit('__auto__');
+    // ponytail: auto-init handled by cmdSetup now, just ensure dirs exist
+    const autoDirs = ['soul', 'skills', 'knowledge', 'memory/short-term', 'memory/long-term', 'heartbeat', '.opencode'];
+    for (const d of autoDirs) mkdirSync(join(cwd, d), { recursive: true });
     const autoDir = join(cwd, '__auto__');
     if (existsSync(autoDir)) {
       const { readdirSync: rd, renameSync, rmdirSync } = await import('node:fs');
@@ -607,10 +432,8 @@ async function cmdStart() {
     }
   }
 
-  let serveRunning = false;
   try {
     await fetch('http://localhost:19876/health', { signal: AbortSignal.timeout(2000) });
-    serveRunning = true;
     console.log('  🧠 opencode serve: 运行中');
   } catch {
     console.log('  🧠 opencode serve: 启动中...');
@@ -664,31 +487,31 @@ async function cmdStart() {
     if (answer) await setupQiweiInteractive();
   }
 
-  if (existsSync(feishuConfig)) await startFeishu(feishuConfig);
-  if (existsSync(qiweiConfig)) await startQiwei(qiweiConfig);
+  if (hasFeishu) await startFeishu(feishuConfig);
+  if (hasQiwei) await startQiwei(qiweiConfig);
 
   try {
     const { execSync } = await import('node:child_process');
-    if (existsSync(join(cwd, 'node_modules', '.bin', 'hunqi-heartbeat'))) {
-      execSync(join(cwd, 'node_modules', '.bin', 'hunqi-heartbeat'), { cwd, stdio: 'pipe', timeout: 60000, encoding: 'utf-8' });
+    if (existsSync(join(cwd, 'node_modules', '.bin', 'agent-soul-heartbeat'))) {
+      execSync(join(cwd, 'node_modules', '.bin', 'agent-soul-heartbeat'), { cwd, stdio: 'pipe', timeout: 60000, encoding: 'utf-8' });
     } else {
-      execSync('hunqi-heartbeat', { cwd, stdio: 'pipe', timeout: 60000, encoding: 'utf-8' });
+      execSync('agent-soul-heartbeat', { cwd, stdio: 'pipe', timeout: 60000, encoding: 'utf-8' });
     }
   } catch {}
 
   console.log('\n  ✅ 魂器已就绪！');
-  if (existsSync(feishuConfig)) console.log('  飞书中 @机器人 即可对话');
-  console.log('  hunqi doctor    # 查看完整状态\n');
+  if (hasFeishu) console.log('  飞书中 @机器人 即可对话');
+  console.log('  agent-soul-framework doctor    # 查看完整状态\n');
 }
 
 // ─── 主入口 ────────────────────────────────────────────────
 
 const pkgVersion = (loadJSON(join(PACKAGE_ROOT, 'package.json')) as { version?: string }).version || '3.0.0';
 const HELP = '\n  魂器 · Agent Soul Framework  v' + pkgVersion + '\n\n' +
-  '  用法: hunqi <command> [options]\n\n' +
+  '  用法: agent-soul-framework <command> [options]\n\n' +
   '  核心命令:\n' +
   '    start               一键启动（引擎+飞书+企微+心跳）\n' +
-  '    init <目录名>        创建新项目目录\n' +
+  '    setup               初始化/配置项目（模板+心跳+crontab）\n' +
   '    status              查看系统状态（记忆/知识/引擎）\n' +
   '    heartbeat           执行一次心跳（同步 + 索引 + 任务）\n' +
   '    search <关键词>      统一记忆搜索（会话 + 文件 + MEMORY.md）\n' +
@@ -703,13 +526,12 @@ const HELP = '\n  魂器 · Agent Soul Framework  v' + pkgVersion + '\n\n' +
   '    interactive         启动交互式 TUI（需在项目目录）\n' +
   '    config              查看配置路径\n' +
   '    doctor              系统诊断（检查所有组件状态）\n' +
-  '    setup               自动配置（模板+心跳+crontab）\n\n' +
   '  示例:\n' +
-  '    hunqi status\n' +
-  '    hunqi search "拍照"\n' +
-  '    hunqi memory status\n' +
-  '    hunqi knowledge daily\n' +
-  '    hunqi heartbeat\n';
+  '    agent-soul-framework status\n' +
+  '    agent-soul-framework search "拍照"\n' +
+  '    agent-soul-framework memory status\n' +
+  '    agent-soul-framework knowledge daily\n' +
+  '    agent-soul-framework heartbeat\n';
 
 async function main() {
   const args = process.argv.slice(2);
@@ -719,7 +541,7 @@ async function main() {
     case undefined: case 'help': case '--help': case '-h':
       console.log(HELP); break;
     case 'start':        await cmdStart(); break;
-    case 'init':         await cmdInit(args[1]); break;
+    case 'setup':         await cmdSetup(); break;
     case 'status':       await cmdStatus(); break;
     case 'heartbeat':    await cmdHeartbeat(); break;
     case 'search':       await cmdSearch(args[1]); break;
@@ -729,9 +551,8 @@ async function main() {
     case 'interactive':  await cmdInteractive(); break;
     case 'config':       await cmdConfig(); break;
     case 'doctor':       await cmdDoctor(); break;
-    case 'setup':        await cmdSetup(); break;
     default:
-      console.log('未知命令: ' + cmd + '\n用法: hunqi help');
+      console.log('未知命令: ' + cmd + '\n用法: agent-soul-framework help');
   }
 }
 

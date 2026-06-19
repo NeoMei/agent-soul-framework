@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/usr/bin/env bash
 #
 # 魂器 systemd 服务安装程序
 # 核心+频道架构：hunqi-core + channel-feishu
@@ -50,8 +50,17 @@ if [ -z "$SUDO_USER" ] && [ "$USER" = "root" ]; then
 fi
 
 # 获取用户真正的家目录（不假设 /home/ 前缀）
-HOME_DIR=$(getent passwd "$USER_NAME" | cut -d: -f6)
+# 跨平台获取用户家目录
+HOME_DIR=""
+if command -v getent &>/dev/null; then
+  HOME_DIR=$(getent passwd "$USER_NAME" 2>/dev/null | cut -d: -f6)
+elif command -v dscl &>/dev/null; then
+  HOME_DIR=$(dscl . -read "/Users/$USER_NAME" NFSHomeDirectory 2>/dev/null | awk '{print $NF}')
+fi
 if [ -z "$HOME_DIR" ]; then
+  HOME_DIR=$(eval echo "~$USER_NAME" 2>/dev/null)
+fi
+if [ -z "$HOME_DIR" ] || [ ! -d "$HOME_DIR" ]; then
     print_error "无法获取用户 $USER_NAME 的家目录"
     exit 1
 fi

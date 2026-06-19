@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/usr/bin/env bash
 #
 # restart-serve.sh — 重启 opencode serve（OpenCode 核心服务）
 # Usage: ./restart-serve.sh [port]

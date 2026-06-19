@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/usr/bin/env bash
 set -e
 
 SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
@@ -53,7 +53,7 @@ else
 fi
 
 # 只杀监听指定端口的 opencode serve，避免误杀其他实例
-SERVE_PID=$(ss -tlnp 2>/dev/null | grep ":${PORT} " | sed -n 's/.*pid=\([0-9]*\).*/\1/p')
+SERVE_PID=$(get_pid_on_port "$PORT")
 if [ -n "$SERVE_PID" ]; then
     kill "$SERVE_PID" 2>/dev/null && echo "已停止 opencode serve (PID: $SERVE_PID, 端口: $PORT)"
 else
@@ -62,8 +62,7 @@ fi
 
 sleep 1
 
-if ss -tlnp 2>/dev/null | grep -q ":${PORT} "; then
-    PID=$(ss -tlnp 2>/dev/null | grep ":${PORT} " | sed -n 's/.*pid=\([0-9]*\).*/\1/p')
+if PID=$(get_pid_on_port "$PORT") && [ -n "$PID" ]; then
     if [ -n "$PID" ]; then
         PROC_NAME=$(ps -p "$PID" -o comm= 2>/dev/null || echo "unknown")
         echo "端口 ${PORT} 仍被占用 (PID: $PID, $PROC_NAME)，发送 SIGTERM..."

@@ -150,7 +150,9 @@ export class ContentFilter {
      */
     static logBlock(text, userId, classification) {
         const timestamp = new Date().toISOString();
-        const logEntry = `[${timestamp}] BLOCKED user=${userId} classification=${classification} text="${text.substring(0, 100)}"\n`;
+        const crypto = require('crypto');
+        const uidHash = crypto.createHash('sha256').update(String(userId)).digest('hex').substring(0, 12);
+        const logEntry = `[${timestamp}] BLOCKED user=${uidHash} classification=${classification} text="${text.substring(0, 100)}"\n`;
         
         try {
             const fs = require('fs');

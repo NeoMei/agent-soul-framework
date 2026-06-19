@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/usr/bin/env bash
 # 魂器心跳任务 wrapper — TypeScript 核心版
 # 由 crontab 调用
 

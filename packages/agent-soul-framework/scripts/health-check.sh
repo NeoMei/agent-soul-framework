@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/usr/bin/env bash
 #
 # 魂器健康检查与自动恢复脚本
 # 用途：检测 OpenCode serve 和飞书连接器状态，卡死时自动重启
@@ -83,7 +83,7 @@ restart_services() {
     log "  启动 OpenCode serve..."
     cd "$PROJECT_DIR"
     export $(grep -v '^#' .env | xargs)
-    setsid bash -c "nohup opencode serve --port $OPENCODE_PORT > /tmp/opencode-serve.log 2>&1 &" >/dev/null 2>&1
+    nohup bash -c " opencode serve --port $OPENCODE_PORT > /tmp/opencode-serve.log 2>&1 &" >/dev/null 2>&1
     
     # 等待 serve 就绪
     local retries=0

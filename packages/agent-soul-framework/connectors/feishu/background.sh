@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/usr/bin/env bash
 set -e
 
 SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
@@ -88,7 +88,7 @@ if [ "$HTTP_CODE" != "000" ]; then
     echo "  ✅ OpenCode server 已在运行 (HTTP $HTTP_CODE)，跳过启动"
 else
     echo "  后台启动 OpenCode headless 服务器..."
-    setsid opencode serve --port "$OPENCODE_PORT" > /tmp/opencode-serve.log 2>&1 &
+    nohup opencode serve --port "$OPENCODE_PORT" > /tmp/opencode-serve.log 2>&1 &
     disown
     sleep 3
     HTTP_CODE=$(curl -s -o /dev/null -w "%{http_code}" http://localhost:$OPENCODE_PORT/session 2>/dev/null || true)

@@ -11,7 +11,12 @@ echo ""
 
 # 确认卸载
 echo "⚠️  此操作将删除 ~/.hunqi、~/.config/opencode 和相关配置"
-read -rp "确认卸载？(y/N) " CONFIRM < /dev/tty
+# 安全读取输入 (兼容无 /dev/tty 环境)
+if [ -e /dev/tty ]; then
+  read -rp "确认卸载？(y/N) " CONFIRM < /dev/tty
+else
+  read -rp "确认卸载？(y/N) " CONFIRM 2>/dev/null || CONFIRM="n"
+fi
 echo
 if [[ ! "$CONFIRM" =~ ^[Yy]$ ]]; then
   echo "已取消"
@@ -55,7 +60,13 @@ safe_kill_pidfile "${HOME}/.config/opencode/qiwei.pid" "opencode-qiwei"
 
 # 只杀监听 19876 端口的 opencode serve，避免误杀其他实例
 PORT="${OPENCODE_PORT:-19876}"
-SERVE_PID=$(ss -tlnp 2>/dev/null | grep ":${PORT} " | sed -n 's/.*pid=\([0-9]*\).*/\1/p')
+# 跨平台获取端口 PID
+SERVE_PID=""
+if command -v lsof &>/dev/null; then
+  SERVE_PID=$(lsof -iTCP:"$PORT" -sTCP:LISTEN -t 2>/dev/null | head -1)
+elif command -v ss &>/dev/null; then
+  SERVE_PID=$(ss -tlnp 2>/dev/null | grep ":$PORT " | sed -n 's/.*pid=\([0-9]*\).*/\1/p' | head -1)
+fi
 if [ -n "$SERVE_PID" ]; then
   if kill -0 "$SERVE_PID" 2>/dev/null; then
     kill "$SERVE_PID" 2>/dev/null && echo "  ✅ opencode serve (PID: $SERVE_PID, 端口: $PORT) 已停止" || echo "  ⚠️  停止失败"
