@@ -331,11 +331,65 @@ async function cmdSetup() {
       const { execSync } = await import('node:child_process');
       execSync('opencode-feishu setup', { stdio: 'inherit', timeout: 300000 });
       console.log('\n  ✅ 飞书配置完成');
+
+      // 注入灵魂 hooks 到 feishu.json
+      try {
+        const hooksDir = join(cwd, 'connectors', 'feishu', 'hooks');
+        const srcHooksDir = join(PACKAGE_ROOT, 'connectors', 'feishu', 'hooks');
+        if (existsSync(srcHooksDir)) {
+          if (!existsSync(hooksDir)) mkdirSync(hooksDir, { recursive: true });
+          for (const f of ['on-session-created.sh', 'on-session-idle.sh']) {
+            const src = join(srcHooksDir, f);
+            const dst = join(hooksDir, f);
+            if (existsSync(src) && !existsSync(dst)) {
+              copyFileSync(src, dst);
+              try { execSync('chmod +x ' + dst, { stdio: 'ignore', timeout: 3000 }); } catch {}
+            }
+          }
+        }
+        const feishuRaw = readFileSync(feishuConfig, 'utf-8');
+        const feishuJson = JSON.parse(feishuRaw);
+        feishuJson.hooks = {
+          onSessionCreated: 'connectors/feishu/hooks/on-session-created.sh',
+          onSessionIdle: 'connectors/feishu/hooks/on-session-idle.sh',
+        };
+        writeFileSync(feishuConfig, JSON.stringify(feishuJson, null, 2));
+        console.log('  🪝 灵魂 hooks: 已注入 feishu.json ✅');
+      } catch (hookErr: any) {
+        console.log('  🪝 灵魂 hooks: 注入失败 (' + (hookErr.message || 'unknown') + ')');
+      }
     } catch {
       console.log('\n  ⚠️  飞书配置跳过（手动配置: opencode-feishu setup）');
     }
   } else {
     console.log('  📱 飞书连接: 已配置');
+    // 补充 hooks 配置（如果缺失）
+    try {
+      const { execSync: esc2 } = await import('node:child_process');
+      const feishuRaw = readFileSync(feishuConfig, 'utf-8');
+      const feishuJson = JSON.parse(feishuRaw);
+      if (!feishuJson.hooks || !feishuJson.hooks.onSessionCreated) {
+        const hooksDir = join(cwd, 'connectors', 'feishu', 'hooks');
+        const srcHooksDir = join(PACKAGE_ROOT, 'connectors', 'feishu', 'hooks');
+        if (existsSync(srcHooksDir)) {
+          if (!existsSync(hooksDir)) mkdirSync(hooksDir, { recursive: true });
+          for (const f of ['on-session-created.sh', 'on-session-idle.sh']) {
+            const src = join(srcHooksDir, f);
+            const dst = join(hooksDir, f);
+            if (existsSync(src) && !existsSync(dst)) {
+              copyFileSync(src, dst);
+              try { esc2('chmod +x ' + dst, { stdio: 'ignore', timeout: 3000 }); } catch {}
+            }
+          }
+        }
+        feishuJson.hooks = {
+          onSessionCreated: 'connectors/feishu/hooks/on-session-created.sh',
+          onSessionIdle: 'connectors/feishu/hooks/on-session-idle.sh',
+        };
+        writeFileSync(feishuConfig, JSON.stringify(feishuJson, null, 2));
+        console.log('  🪝 灵魂 hooks: 已注入 feishu.json ✅');
+      }
+    } catch {}
     try {
       const { execSync } = await import('node:child_process');
       const status = execSync('opencode-feishu status 2>/dev/null || echo "stopped"', { encoding: 'utf-8', timeout: 5000 }).trim();
