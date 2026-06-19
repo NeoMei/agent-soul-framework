@@ -292,6 +292,18 @@ async function cmdSetup() {
   copyExamples(join(cwd, '.opencode'));
   copyExamples(join(cwd, 'memory'));
   copyExamples(join(cwd, 'knowledge'));
+
+  // 复制 OpenCode tools (记忆搜索等)
+  const srcToolsDir = join(PACKAGE_ROOT, '.opencode', 'tools');
+  const dstToolsDir = join(cwd, '.opencode', 'tools');
+  if (existsSync(srcToolsDir)) {
+    if (!existsSync(dstToolsDir)) mkdirSync(dstToolsDir, { recursive: true });
+    for (const f of ['search-memory.mjs']) {
+      const src = join(srcToolsDir, f);
+      const dst = join(dstToolsDir, f);
+      if (existsSync(src) && !existsSync(dst)) { copyFileSync(src, dst); copied++; }
+    }
+  }
   if (existsSync(join(PACKAGE_ROOT, 'AGENTS.md.example')) && !existsSync(join(cwd, 'AGENTS.md'))) {
     copyFileSync(join(PACKAGE_ROOT, 'AGENTS.md.example'), join(cwd, 'AGENTS.md')); copied++;
   }
@@ -338,7 +350,7 @@ async function cmdSetup() {
         const srcHooksDir = join(PACKAGE_ROOT, 'connectors', 'feishu', 'hooks');
         if (existsSync(srcHooksDir)) {
           if (!existsSync(hooksDir)) mkdirSync(hooksDir, { recursive: true });
-          for (const f of ['on-session-created.sh', 'on-session-idle.sh', 'query-memory.mjs']) {
+          for (const f of ['on-session-created.sh', 'on-session-idle.sh']) {
             const src = join(srcHooksDir, f);
             const dst = join(hooksDir, f);
             if (existsSync(src) && !existsSync(dst)) {
@@ -373,7 +385,7 @@ async function cmdSetup() {
         const srcHooksDir = join(PACKAGE_ROOT, 'connectors', 'feishu', 'hooks');
         if (existsSync(srcHooksDir)) {
           if (!existsSync(hooksDir)) mkdirSync(hooksDir, { recursive: true });
-          for (const f of ['on-session-created.sh', 'on-session-idle.sh', 'query-memory.mjs']) {
+          for (const f of ['on-session-created.sh', 'on-session-idle.sh']) {
             const src = join(srcHooksDir, f);
             const dst = join(hooksDir, f);
             if (existsSync(src) && !existsSync(dst)) {

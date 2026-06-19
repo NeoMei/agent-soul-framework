@@ -11,7 +11,11 @@
           "name": "Your Model Display Name",
           "attachment": true,
           "modalities": {
-            "input": ["text", "image", "pdf"]
+            "input": [
+              "text",
+              "image",
+              "pdf"
+            ]
           },
           "limit": {
             "context": 131072,
@@ -24,7 +28,8 @@
   },
   "default_agent": "build",
   "plugin": [
-    "./plugin/index.js"
+    "./plugin/index.js",
+    "./.opencode/tools/search-memory.mjs"
   ],
   "compaction": {
     "auto": true,
