@@ -1,6 +1,6 @@
 {
   "name": "hunqi-plugin",
-  "version": "4.5.0",
+  "version": "4.5.8",
   "description": "魂器 OpenCode 插件 — 自动注入灵魂 + 保存对话",
   "author": "NeoMei",
   "license": "MIT",
@@ -22,7 +22,7 @@
     "session.closed": {
       "description": "会话关闭时清理缓存"
     },
-    "session.error": {
+    "session.idle": { "description": "会话 idle 时重新注入灵魂上下文（无头模式）" }, "session.error": {
       "description": "会话错误时忽略"
     }
   },
@@ -35,3 +35,4 @@
     "memoryDir": "memory/short-term"
   }
 }
+

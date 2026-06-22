@@ -96,7 +96,7 @@ function saveMessage(sessionID, role, content) {
 
 export const meta = {
   name: 'hunqi-plugin',
-  version: '4.5.0',
+  version: '4.5.8',
   description: '魂器 OpenCode 插件 — 自动注入灵魂 + 保存对话',
   hooks: [
     'session.created',
@@ -104,6 +104,7 @@ export const meta = {
     'experimental.chat.system.transform',
     'chat.message',
     'session.closed',
+    'session.idle',
     'session.error'
   ]
 };
@@ -145,10 +146,20 @@ export default function HunqiPlugin(ctx) {
       } catch {}
     },
 
+    'session.idle': async (_input, output) => {
+      try {
+        if (!output?.system) return;
+        injectSoul(output);
+      } catch {}
+    },
+
     'session.closed': async (input) => {
       // 清理不再需要的缓存（当前无需额外状态）
     },
 
+    'session.idle',
     'session.error': async () => {}
   };
 }
+
+
