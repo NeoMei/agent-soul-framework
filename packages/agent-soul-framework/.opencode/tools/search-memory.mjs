@@ -15,6 +15,38 @@ const MEMORY_MD = join(PROJECT_DIR, "memory", "MEMORY.md");
 const LONG_TERM_DIR = join(PROJECT_DIR, "memory", "long-term");
 const KNOWLEDGE_DIR = join(PROJECT_DIR, "knowledge");
 
+// ─── Layer 5: ChromaDB 向量语义搜索 ─────────────────────
+function searchVector(query, limit = 5) {
+  try {
+    // 查找 memory_manager.py 脚本路径
+    const { execSync } = require("node:child_process");
+    const scriptsDir = join(PROJECT_DIR, "..", "agent-soul-skills", "scripts");
+    const pyScript = join(scriptsDir, "memory_manager.py");
+    if (!existsSync(pyScript)) return [];
+    
+    // 尝试找到 python3
+    let python = "python3";
+    try { execSync("python3 --version 2>&1", { timeout: 3000 }); } catch {
+      try { execSync("python --version 2>&1", { timeout: 3000 }); python = "python"; } catch {
+        return [];
+      }
+    }
+
+    const result = execSync(
+      `${python} "${pyScript}" vector-search --json "${query}"`,
+      { encoding: "utf-8", timeout: 30000, cwd: PROJECT_DIR }
+    ).trim();
+
+    if (!result || result.startsWith("[INFO]") || result.startsWith("用法")) return [];
+    
+    const parsed = JSON.parse(result);
+    if (!Array.isArray(parsed)) return [];
+    return parsed.slice(0, limit);
+  } catch (err) {
+    // ChromaDB 不可用或未安装，静默跳过
+    return [];
+  }
+}
 // ─── Layer 1: 短期对话搜索 ─────────────────────────────
 function searchConversations(query, limit = 15) {
   if (!existsSync(DB_PATH)) return [];
@@ -180,6 +212,17 @@ export default function SearchMemoryPlugin(ctx) {
             output += "\n";
           }
 
+          // Layer 5: ChromaDB 向量语义搜索
+          const vec = searchVector(query, limit);
+          if (vec.length > 0) {
+            output += `### 🧬 向量语义 (${vec.length} 条)\n\n`;
+            for (const r of vec) {
+              const dist = (r.distance * 100).toFixed(1);
+              output += `- [${r.collection}] ${(r.content || "").slice(0, 200)} (相关性 ${dist}%)\n`;
+            }
+            output += "\n";
+          }
+
           // Layer 3
           const know = searchKnowledge(query, limit);
           if (know.length > 0) {
@@ -200,11 +243,11 @@ export default function SearchMemoryPlugin(ctx) {
             output += "\n";
           }
 
-          const total = conv.length + struct.length + memMd.length + know.length + lt.length;
+          const total = conv.length + struct.length + memMd.length + know.length + lt.length + vec.length;
           if (total === 0) {
             return `未找到与 "${query}" 相关的记忆。`;
           }
-          output += `---\n共 ${total} 条结果（短期 ${conv.length} + 结构 ${struct.length + memMd.length} + 知识 ${know.length} + 长期 ${lt.length}）`;
+          output += `---\n共 ${total} 条结果（短期 ${conv.length} + 结构 ${struct.length + memMd.length} + 知识 ${know.length} + 长期 ${lt.length} + 向量 ${vec.length}）`;
           return output;
         },
       }),
@@ -269,3 +312,4 @@ export default function SearchMemoryPlugin(ctx) {
     },
   };
 }
+
