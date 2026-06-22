@@ -17,13 +17,15 @@
 
 ## 记忆搜索
 
-```bash
-# 首选: 统一记忆搜索
-python3 scripts/memory_search.py "关键词"
+**始终优先使用以下 OpenCode 工具**（零进程开销，引擎内执行）：
 
-# FTS5 会话搜索
-python3 scripts/memory_structured.py search "关键词"
-```
+| 工具 | 用途 |
+|------|------|
+| `search_memory "关键词"` | 五层统一搜索：短期对话 + 结构化 + MEMORY.md + 知识库 + ChromaDB 语义 |
+| `recall_memory` | 回顾最近对话，了解当前上下文 |
+| `search_knowledge "关键词"` | 专项搜索知识库卡片 |
+
+在回答用户问题之前，先 `search_memory` 检查是否有相关历史信息。
 
 ---
 
