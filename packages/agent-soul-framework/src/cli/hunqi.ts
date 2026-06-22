@@ -434,17 +434,44 @@ async function cmdSetup() {
     console.log('  跳过企微配置，继续...');
   } else {
     console.log('  💬 企微连接: 已配置');
+    // 补充 hooks 配置（如果缺失）
+    try {
+      const { execSync: esc3 } = await import('node:child_process');
+      const qiweiRaw = readFileSync(qiweiConfig, 'utf-8');
+      const qiweiJson = JSON.parse(qiweiRaw);
+      if (!qiweiJson.hooks || !qiweiJson.hooks.onSessionCreated) {
+        const hooksDir = join(cwd, 'connectors', 'qiwei', 'hooks');
+        const srcHooksDir = join(PACKAGE_ROOT, 'connectors', 'qiwei', 'hooks');
+        if (existsSync(srcHooksDir)) {
+          if (!existsSync(hooksDir)) mkdirSync(hooksDir, { recursive: true });
+          for (const f of ['on-session-created.sh', 'on-session-idle.sh']) {
+            const src = join(srcHooksDir, f);
+            const dst = join(hooksDir, f);
+            if (existsSync(src) && !existsSync(dst)) {
+              copyFileSync(src, dst);
+              try { esc3('chmod +x ' + dst, { stdio: 'ignore', timeout: 3000 }); } catch {}
+            }
+          }
+        }
+        qiweiJson.hooks = {
+          onSessionCreated: 'connectors/qiwei/hooks/on-session-created.sh',
+          onSessionIdle: 'connectors/qiwei/hooks/on-session-idle.sh',
+        };
+        writeFileSync(qiweiConfig, JSON.stringify(qiweiJson, null, 2));
+        console.log('  🪝 灵魂 hooks: 已注入 qiwei.json ✅');
+      }
+    } catch {}
     try {
       const { execSync } = await import('node:child_process');
       const qstatus = execSync('opencode-qiwei status 2>/dev/null || echo "stopped"', { encoding: 'utf-8', timeout: 5000 }).trim();
       if (qstatus.includes('stopped') || qstatus.includes('not running')) {
         console.log('  💬 企微桥接: 正在启动...');
-        execSync('opencode-qiwei start', { stdio: 'ignore', timeout: 10000 });
+        execSync('opencode-qiwei start --daemon', { stdio: 'ignore', timeout: 10000 });
         console.log('  💬 企微桥接: 已启动 ✅');
       } else {
         console.log('  💬 企微桥接: 运行中 ✅');
       }
-    } catch { console.log('  💬 企微桥接: 请手动运行 opencode-qiwei start'); }
+    } catch { console.log('  💬 企微桥接: 请手动运行 opencode-qiwei start --daemon'); }
   }
 
   try {
@@ -510,7 +537,7 @@ async function startQiwei(qiweiConfig: string) {
     const { execSync } = await import('node:child_process');
     const qs = execSync('opencode-qiwei status 2>/dev/null || echo "stopped"', { encoding: 'utf-8', timeout: 5000 }).trim();
     if (qs.includes('stopped') || qs.includes('not running')) {
-      execSync('opencode-qiwei start', { stdio: 'ignore', timeout: 10000 });
+      execSync('opencode-qiwei start --daemon', { stdio: 'ignore', timeout: 10000 });
       console.log('  💬 企微桥接: 已启动 ✅');
     } else {
       console.log('  💬 企微桥接: 运行中 ✅');
@@ -664,3 +691,4 @@ async function main() {
 }
 
 main().catch(console.error);
+

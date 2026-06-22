@@ -1,0 +1,63 @@
+[Unit]
+Description=魂器企业微信频道 (Channel Qiwei) - Hunqi Core 的企微接入
+# 注意：install-systemd.sh 安装时会将 %h 替换为实际家目录。
+# 系统级 systemd 中 %h 展开为 /root（而非 User= 指定的用户），不可直接使用。
+Documentation=https://github.com/NeoMei/agent-soul-framework
+After=network-online.target hunqi-core@%i.service
+Wants=network-online.target
+
+# 强依赖核心服务
+Requires=hunqi-core@%i.service
+After=hunqi-core@%i.service
+
+# 挂起后重启
+After=suspend.target hibernate.target hybrid-sleep.target
+
+[Service]
+Type=simple
+User=%I
+Group=%I
+
+# 工作目录
+WorkingDirectory=%h/.hunqi/agent-soul-framework/packages/agent-soul-framework
+
+# 加载环境变量
+Environment="HOME=%h"
+Environment="USER=%I"
+
+# 从 .env 文件加载环境变量
+EnvironmentFile=-%h/.hunqi/.env
+
+# 启动前：清理消息过多的 session 映射（防止上下文无限膨胀）
+ExecStartPre=-/bin/sh -c '%h/.hunqi/agent-soul-framework/packages/agent-soul-framework/connectors/qiwei/scripts/session-cleanup.sh'
+
+# 启动前等待核心就绪
+ExecStartPre=/bin/sh -c 'for i in $(seq 1 30); do if curl -s http://localhost:19876/session >/dev/null 2>&1; then exit 0; fi; sleep 1; done; exit 1'
+
+# 启动命令 - 使用 ~/.hunqi/bin 下的 wrapper，避免依赖 nvm 版本
+ExecStart=%h/.hunqi/bin/opencode-qiwei start --daemon
+
+# 停止命令
+ExecStop=/bin/sh -c 'PID=$(ss -tlnp 2>/dev/null | grep "opencode-qiwei" | head -1 | sed -n "s/.*pid=\\([0-9]*\\).*/\\1/p"); [ -n "$PID" ] && kill "$PID" || true'
+
+# 重载配置（修改 qiwei.json 后执行 systemctl reload 即可生效）
+ExecReload=/bin/sh -c '%h/.hunqi/bin/opencode-qiwei stop 2>/dev/null; sleep 2; %h/.hunqi/bin/opencode-qiwei start --daemon'
+
+# 重启策略
+Restart=always
+RestartSec=5
+StartLimitInterval=60s
+StartLimitBurst=3
+
+# 日志
+StandardOutput=journal
+StandardError=journal
+SyslogIdentifier=channel-qiwei
+
+# 进程管理
+KillMode=mixed
+KillSignal=SIGTERM
+TimeoutStopSec=30
+
+[Install]
+WantedBy=multi-user.target
