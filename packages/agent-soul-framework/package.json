@@ -1,6 +1,6 @@
 {
   "name": "@neomei/agent-soul-framework",
-  "version": "4.5.7",
+  "version": "4.5.8",
   "description": "魂器核心框架 — 基于 OpenCode 的 AI Agent 管理层框架。持久记忆 · 自主学习 · 多端部署 · 心跳自治（纯 TypeScript）",
   "type": "module",
   "main": "dist/index.js",
@@ -77,3 +77,4 @@
     "typescript": "^5.4.0"
   }
 }
+
