@@ -39,7 +39,6 @@
     "verify.sh",
     "start-feishu-daemon.sh",
     ".opencode/tools/search-memory.mjs",
-    "connectors/feishu/hooks/query-memory.mjs"
   ],
   "scripts": {
     "build": "tsc",
@@ -77,6 +76,7 @@
     "typescript": "^5.4.0"
   }
 }
+
 
 
 
