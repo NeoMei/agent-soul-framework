@@ -299,22 +299,31 @@ async function cmdSetup() {
     }
   }
   // Try CWD first, then PACKAGE_ROOT for template files
+  function copyExamplesFrom(srcDir: string, dstDir: string) {
+    if (!existsSync(srcDir)) return;
+    if (!existsSync(dstDir)) mkdirSync(dstDir, { recursive: true });
+    for (const f of rd(srcDir)) {
+      const fp = join(srcDir, f);
+      if (statSync(fp).isDirectory()) {
+        copyExamplesFrom(fp, join(dstDir, f));
+        continue;
+      }
+      if (f.endsWith('.example')) {
+        const target = join(dstDir, f.replace('.example', ''));
+        if (!existsSync(target)) { copyFileSync(fp, target); copied++; }
+      }
+    }
+  }
   for (const sub of ['soul', '.opencode', 'memory', 'knowledge']) {
     const cwdDir = join(cwd, sub);
     const pkgDir = join(PACKAGE_ROOT, sub);
-    if (existsSync(cwdDir)) {
+    // Check if CWD has .example files; if not, fall back to PACKAGE_ROOT
+    const hasCwdExamples = existsSync(cwdDir) && rd(cwdDir).some(f => f.endsWith('.example'));
+    if (hasCwdExamples) {
       copyExamples(cwdDir);
     } else if (existsSync(pkgDir)) {
-      // Create target dir and copy from package
-      if (!existsSync(join(cwd, sub))) mkdirSync(join(cwd, sub), { recursive: true });
-      for (const f of rd(pkgDir)) {
-        const fp = join(pkgDir, f);
-        if (statSync(fp).isDirectory()) continue;
-        if (f.endsWith('.example')) {
-          const target = join(cwd, sub, f.replace('.example', ''));
-          if (!existsSync(target)) { copyFileSync(fp, target); copied++; }
-        }
-      }
+      if (!existsSync(cwdDir)) mkdirSync(cwdDir, { recursive: true });
+      copyExamplesFrom(pkgDir, cwdDir);
     }
   }
 
