@@ -11,10 +11,20 @@
     "esModuleInterop": true,
     "skipLibCheck": true,
     "resolveJsonModule": true,
-    "lib": ["ES2024"],
-    "types": ["node"]
+    "lib": [
+      "ES2024"
+    ],
+    "types": [
+      "node"
+    ]
   },
-  "include": ["src/**/*"],
-  "exclude": ["node_modules", "dist"]
+  "include": [
+    "src/**/*"
+  ],
+  "exclude": [
+    "node_modules",
+    "dist",
+    "src/plugins/**/*",
+    "src/tools/**/*"
+  ]
 }
-

@@ -60,8 +60,7 @@ export class StructuredMemory {
         if (messages.length === 0) continue;
 
         const summary = messages.slice(0, 3).join(' | ').slice(0, 300);
-        const content = messages.join('
-').slice(0, 50000);
+        const content = messages.join('\n').slice(0, 50000);
         const date = new Date(last_ts * 1000).toISOString().split('T')[0];
 
         this.db.prepare(
