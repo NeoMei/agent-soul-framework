@@ -589,7 +589,8 @@ async function cmdStart() {
     console.log('  🧠 opencode serve: 启动中...');
     try {
       const { spawn } = await import('node:child_process');
-      spawn('opencode', ['serve', '--port', '19876'], { stdio: 'ignore', detached: true, cwd }).unref();
+      const cmd = process.platform === 'win32' ? 'opencode.cmd' : 'opencode';
+      spawn(cmd, ['serve', '--port', '19876'], { stdio: 'ignore', detached: true, cwd }).unref();
       await new Promise(r => setTimeout(r, 3000));
       await fetch('http://localhost:19876/health', { signal: AbortSignal.timeout(2000) });
       console.log('  🧠 opencode serve: 已启动 ✅');
