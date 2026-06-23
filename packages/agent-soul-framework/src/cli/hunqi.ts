@@ -279,9 +279,10 @@ async function cmdSetup() {
   }
   console.log('\n  🔧 魂器自动配置\n  ' + '─'.repeat(50));
 
-  if (!existsSync(join(cwd, 'soul')) && !existsSync(join(cwd, 'soul', 'SOUL.md'))) {
-    console.log('  ⚠️  不在魂器项目目录，请先 agent-soul-framework setup');
-    return;
+  // Ensure directories exist (setup creates them if missing)
+  const dirs = ['soul', 'memory', 'knowledge', '.opencode', 'heartbeat'];
+  for (const d of dirs) {
+    if (!existsSync(join(cwd, d))) mkdirSync(join(cwd, d), { recursive: true });
   }
 
   let copied = 0;
@@ -297,10 +298,25 @@ async function cmdSetup() {
       }
     }
   }
-  copyExamples(join(cwd, 'soul'));
-  copyExamples(join(cwd, '.opencode'));
-  copyExamples(join(cwd, 'memory'));
-  copyExamples(join(cwd, 'knowledge'));
+  // Try CWD first, then PACKAGE_ROOT for template files
+  for (const sub of ['soul', '.opencode', 'memory', 'knowledge']) {
+    const cwdDir = join(cwd, sub);
+    const pkgDir = join(PACKAGE_ROOT, sub);
+    if (existsSync(cwdDir)) {
+      copyExamples(cwdDir);
+    } else if (existsSync(pkgDir)) {
+      // Create target dir and copy from package
+      if (!existsSync(join(cwd, sub))) mkdirSync(join(cwd, sub), { recursive: true });
+      for (const f of rd(pkgDir)) {
+        const fp = join(pkgDir, f);
+        if (statSync(fp).isDirectory()) continue;
+        if (f.endsWith('.example')) {
+          const target = join(cwd, sub, f.replace('.example', ''));
+          if (!existsSync(target)) { copyFileSync(fp, target); copied++; }
+        }
+      }
+    }
+  }
 
   // 复制 OpenCode 配置文件
   const srcOcDir = join(PACKAGE_ROOT, '.opencode');
