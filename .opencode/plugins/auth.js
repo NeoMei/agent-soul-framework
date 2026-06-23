@@ -1,9 +1,15 @@
 import { ContentFilter } from '../../scripts/content-filter.js';
 
 // 权限验证插件 - 基于飞书对话ID验证管理员身份
-const ADMIN_IDS = [
-  "oc_fad076de83be5656be1ce72624856bfb"
-];
+// 管理员 ID 列表（环境变量 HUNQI_ADMIN_IDS，逗号分隔）
+const ADMIN_IDS = (process.env.HUNQI_ADMIN_IDS || "")
+  .split(",")
+  .map(s => s.trim())
+  .filter(Boolean);
+
+if (ADMIN_IDS.length === 0) {
+  console.warn("[AuthPlugin] ⚠️  未设置 HUNQI_ADMIN_IDS 环境变量，所有用户均为 readonly");
+}
 
 export const AuthPlugin = async ({ project, client }) => {
   console.log("[AuthPlugin] ================================");

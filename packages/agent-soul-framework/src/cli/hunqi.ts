@@ -7,6 +7,7 @@
 import { existsSync, readFileSync, mkdirSync, copyFileSync, writeFileSync, readdirSync } from 'node:fs';
 import { dirname } from 'node:path';
 import { join } from 'node:path';
+import { homedir } from 'node:os';
 
 const PACKAGE_ROOT = join(import.meta.dirname, '..', '..');
 
@@ -18,7 +19,7 @@ function findSkillsPackage(): string | null {
   const candidates = [
     join(PACKAGE_ROOT, '..', 'agent-soul-skills'),
     join(PACKAGE_ROOT, 'node_modules', '@neomei', 'agent-soul-skills'),
-    join(process.env.HOME || '/', '.config', 'agent-soul-framework', 'skills'),
+    join(homedir(), '.config', 'agent-soul-framework', 'skills'),
   ];
   for (const root of candidates) {
     if (existsSync(join(root, 'skills', 'skill-creator', 'scripts', 'skill_creator.py'))) return root;
@@ -53,7 +54,7 @@ async function cmdStatus() {
 
   try {
     const { execSync } = await import('node:child_process');
-    const ocVer = execSync('opencode --version 2>&1', { encoding: 'utf-8' }).trim();
+    const ocVer = execSync((process.platform === 'win32' ? 'opencode.cmd' : 'opencode') + ' --version', { encoding: 'utf-8' }).trim();
     console.log('  OpenCode: ' + ocVer);
   } catch {
     console.log('  OpenCode: 未检测到');
@@ -141,7 +142,8 @@ async function cmdSkillCreate(args: string[]) {
   const flag = args.includes('--dry-run') ? '--dry-run' : args.includes('--force') ? '--force' : '';
   try {
     const { execSync } = await import('node:child_process');
-    execSync('python3 ' + join(skillsRoot, 'skills', 'skill-creator', 'scripts', 'skill_creator.py') + ' ' + flag, {
+    const pyCmd = process.platform === 'win32' ? 'python' : 'python3';
+    execSync(pyCmd + ' ' + join(skillsRoot, 'skills', 'skill-creator', 'scripts', 'skill_creator.py') + ' ' + flag, {
       cwd: process.cwd(), stdio: 'inherit', timeout: 120000
     });
   } catch { console.error('技能创建失败（需要 Python + OpenCode serve 运行中）'); }
@@ -152,7 +154,11 @@ async function cmdInteractive() {
     const { execSync } = await import('node:child_process');
     const script = join(PACKAGE_ROOT, 'agent-soul-framework.sh');
     if (existsSync(script)) {
-      execSync('bash ' + script + ' interactive', { cwd: process.cwd(), stdio: 'inherit' });
+      if (process.platform === 'win32') {
+        console.log('  ⚠️  TUI 模式在 Windows 上不支持，请使用 opencode serve 模式');
+      } else {
+        execSync('bash ' + script + ' interactive', { cwd: process.cwd(), stdio: 'inherit' });
+      }
       return;
     }
   } catch {}
@@ -171,7 +177,7 @@ async function cmdDoctor() {
   const cwd = process.cwd();
   let checkDir = cwd;
   if (!existsSync(join(checkDir, 'soul', 'SOUL.md'))) {
-    const defaultDir = join(process.env.HOME || '~', '.agent-soul-framework');
+    const defaultDir = join(homedir(), '.agent-soul-framework');
     if (existsSync(join(defaultDir, 'soul', 'SOUL.md'))) {
       checkDir = defaultDir;
     }
@@ -183,7 +189,7 @@ async function cmdDoctor() {
 
   try {
     const { execSync } = await import('node:child_process');
-    const ocVer = execSync('opencode --version 2>&1', { encoding: 'utf-8', timeout: 5000 }).trim();
+    const ocVer = execSync((process.platform === 'win32' ? 'opencode.cmd' : 'opencode') + ' --version', { encoding: 'utf-8', timeout: 5000 }).trim();
     console.log('  OpenCode:     ' + ocVer + '  ✅');
   } catch { console.log('  OpenCode:     未安装 ❌ (npm install -g opencode-ai)'); }
 
@@ -194,11 +200,11 @@ async function cmdDoctor() {
 
   try {
     const { execSync } = await import('node:child_process');
-    const fv = execSync('opencode-feishu --version 2>&1', { encoding: 'utf-8', timeout: 5000 }).trim();
+    const fv = execSync((process.platform === 'win32' ? 'opencode-feishu.cmd' : 'opencode-feishu') + ' --version', { encoding: 'utf-8', timeout: 5000 }).trim();
     console.log('  opencode-feishu: ' + fv + '  ✅');
   } catch { console.log('  opencode-feishu: 未安装 ⚠️'); }
 
-  const feishuConfig = join(process.env.HOME || '~', '.config', 'opencode', 'feishu.json');
+  const feishuConfig = join(homedir(), '.config', 'opencode', 'feishu.json');
   if (existsSync(feishuConfig)) {
     try {
       const cfg = JSON.parse(readFileSync(feishuConfig, 'utf-8')) as { appId?: string };
@@ -206,8 +212,8 @@ async function cmdDoctor() {
     } catch { console.log('  飞书配置:      文件存在但格式错误 ❌'); }
   } else { console.log('  飞书配置:      未配置 ⚠️  (opencode-feishu setup)'); }
 
-  const qiweiConfig_d = join(process.env.HOME || '~', '.config', 'opencode', 'qiwei.json');
-  if (existsSync(qiweiConfig_d)) {
+  const qiweiCfg = join(homedir(), '.config', 'opencode', 'qiwei.json');
+  if (existsSync(qiweiCfg)) {
     console.log('  企微配置:      已配置 ✅');
   } else {
     console.log('  企微配置:      未配置（可选）');
@@ -240,7 +246,10 @@ async function cmdDoctor() {
 
   try {
     const { execSync } = await import('node:child_process');
-    const cron = execSync('crontab -l 2>/dev/null || echo ""', { encoding: 'utf-8', timeout: 5000 });
+    const isWin = process.platform === 'win32';
+    const cron = isWin
+      ? ''
+      : execSync('crontab -l 2>/dev/null || echo ""', { encoding: 'utf-8', timeout: 5000 });
     if (cron.includes('heartbeat_wrapper')) {
       console.log('  心跳调度:      crontab 已配置 ✅');
     } else {
@@ -263,7 +272,7 @@ async function cmdDoctor() {
 async function cmdSetup() {
   let cwd = process.cwd();
   if (!existsSync(join(cwd, 'soul', 'SOUL.md'))) {
-    const defaultDir = join(process.env.HOME || '~', '.agent-soul-framework');
+    const defaultDir = join(homedir(), '.agent-soul-framework');
     if (existsSync(join(defaultDir, 'soul', 'SOUL.md'))) {
       cwd = defaultDir;
     }
@@ -336,17 +345,20 @@ async function cmdSetup() {
   try {
     const { execSync } = await import('node:child_process');
     const cronLine = '*/30 * * * * cd ' + cwd + ' && ./heartbeat_wrapper.sh';
-    const existing = execSync('crontab -l 2>/dev/null || echo ""', { encoding: 'utf-8' });
-    if (!existing.includes('heartbeat_wrapper.sh')) {
-      const newCron = existing.trim() + (existing.trim() ? '\n' : '') + cronLine + '\n';
-      execSync('printf "%s" "$1" | crontab -', { encoding: 'utf-8', env: { ...process.env, '1': newCron } });
-      console.log('  📅 心跳调度: crontab 已配置');
+    const isWin2 = process.platform === 'win32';
+    const existing = isWin2 ? '' : execSync('crontab -l 2>/dev/null || echo ""', { encoding: 'utf-8' });
+    if (isWin2) {
+      console.log('  📅 心跳调度: Windows 请用 Task Scheduler 替代 crontab');
+    } else if (!existing.includes('heartbeat_wrapper.sh')) {
+    const newCron = existing.trim() + (existing.trim() ? '\n' : '') + cronLine + '\n';
+    execSync('printf "%s" "$1" | crontab -', { encoding: 'utf-8', env: { ...process.env, '1': newCron } });
+    console.log('  📅 心跳调度: crontab 已配置');
     } else {
       console.log('  📅 心跳调度: 已配置');
     }
   } catch { console.log('  📅 心跳调度: 跳过'); }
 
-  const feishuConfig = join(process.env.HOME || '~', '.config', 'opencode', 'feishu.json');
+  const feishuConfig = join(homedir(), '.config', 'opencode', 'feishu.json');
   if (!existsSync(feishuConfig)) {
     console.log('\n  📱 飞书连接配置\n  ' + '─'.repeat(40));
     console.log('  未检测到飞书配置，现在开始设置...\n');
@@ -366,7 +378,7 @@ async function cmdSetup() {
             const dst = join(hooksDir, f);
             if (existsSync(src) && !existsSync(dst)) {
               copyFileSync(src, dst);
-              try { execSync('chmod +x ' + dst, { stdio: 'ignore', timeout: 3000 }); } catch {}
+              try { if (process.platform !== 'win32') execSync('chmod +x ' + dst, { stdio: 'ignore', timeout: 3000 }); } catch {}
             }
           }
         }
@@ -401,7 +413,7 @@ async function cmdSetup() {
             const dst = join(hooksDir, f);
             if (existsSync(src) && !existsSync(dst)) {
               copyFileSync(src, dst);
-              try { esc2('chmod +x ' + dst, { stdio: 'ignore', timeout: 3000 }); } catch {}
+              try { if (process.platform !== 'win32') esc2('chmod +x ' + dst, { stdio: 'ignore', timeout: 3000 }); } catch {}
             }
           }
         }
@@ -415,8 +427,9 @@ async function cmdSetup() {
     } catch {}
     try {
       const { execSync } = await import('node:child_process');
-      const status = execSync('opencode-feishu status 2>/dev/null || echo "stopped"', { encoding: 'utf-8', timeout: 5000 }).trim();
-      if (status.includes('stopped') || status.includes('not running')) {
+      let feishuStatus: string;
+      try { feishuStatus = execSync('opencode-feishu status', { encoding: 'utf-8', timeout: 5000 }).trim(); } catch { feishuStatus = 'stopped'; }
+      if (feishuStatus.includes('stopped') || feishuStatus.includes('not running')) {
         console.log('  📱 飞书桥接: 正在启动...');
         execSync('opencode-feishu start --daemon', { stdio: 'ignore', timeout: 10000 });
         console.log('  📱 飞书桥接: 已启动 ✅');
@@ -426,7 +439,7 @@ async function cmdSetup() {
     } catch { console.log('  📱 飞书桥接: 请手动运行 opencode-feishu start --daemon'); }
   }
 
-  const qiweiConfig = join(process.env.HOME || '~', '.config', 'opencode', 'qiwei.json');
+  const qiweiConfig = join(homedir(), '.config', 'opencode', 'qiwei.json');
   if (!existsSync(qiweiConfig)) {
     console.log('\n  💬 企业微信配置\n  ' + '─'.repeat(40));
     console.log('  未检测到企微配置。');
@@ -449,7 +462,7 @@ async function cmdSetup() {
             const dst = join(hooksDir, f);
             if (existsSync(src) && !existsSync(dst)) {
               copyFileSync(src, dst);
-              try { esc3('chmod +x ' + dst, { stdio: 'ignore', timeout: 3000 }); } catch {}
+              try { if (process.platform !== 'win32') esc3('chmod +x ' + dst, { stdio: 'ignore', timeout: 3000 }); } catch {}
             }
           }
         }
@@ -463,7 +476,8 @@ async function cmdSetup() {
     } catch {}
     try {
       const { execSync } = await import('node:child_process');
-      const qstatus = execSync('opencode-qiwei status 2>/dev/null || echo "stopped"', { encoding: 'utf-8', timeout: 5000 }).trim();
+      let qstatus: string;
+      try { qstatus = execSync('opencode-qiwei status', { encoding: 'utf-8', timeout: 5000 }).trim(); } catch { qstatus = 'stopped'; }
       if (qstatus.includes('stopped') || qstatus.includes('not running')) {
         console.log('  💬 企微桥接: 正在启动...');
         execSync('opencode-qiwei start --daemon', { stdio: 'ignore', timeout: 10000 });
@@ -520,8 +534,9 @@ async function startFeishu(feishuConfig: string) {
   if (!existsSync(feishuConfig)) return;
   try {
     const { execSync } = await import('node:child_process');
-    const status = execSync('opencode-feishu status 2>/dev/null || echo "stopped"', { encoding: 'utf-8', timeout: 5000 }).trim();
-    if (status.includes('stopped') || status.includes('not running')) {
+    let feishuStat: string;
+    try { feishuStat = execSync('opencode-feishu status', { encoding: 'utf-8', timeout: 5000 }).trim(); } catch { feishuStat = 'stopped'; }
+    if (feishuStat.includes('stopped') || feishuStat.includes('not running')) {
       console.log('  📱 飞书桥接: 启动中...');
       execSync('opencode-feishu start --daemon', { stdio: 'ignore', timeout: 10000 });
       console.log('  📱 飞书桥接: 已启动 ✅');
@@ -535,8 +550,9 @@ async function startQiwei(qiweiConfig: string) {
   if (!existsSync(qiweiConfig)) return;
   try {
     const { execSync } = await import('node:child_process');
-    const qs = execSync('opencode-qiwei status 2>/dev/null || echo "stopped"', { encoding: 'utf-8', timeout: 5000 }).trim();
-    if (qs.includes('stopped') || qs.includes('not running')) {
+    let qiweiStat: string;
+    try { qiweiStat = execSync('opencode-qiwei status', { encoding: 'utf-8', timeout: 5000 }).trim(); } catch { qiweiStat = 'stopped'; }
+    if (qiweiStat.includes('stopped') || qiweiStat.includes('not running')) {
       execSync('opencode-qiwei start --daemon', { stdio: 'ignore', timeout: 10000 });
       console.log('  💬 企微桥接: 已启动 ✅');
     } else {
@@ -582,15 +598,12 @@ async function cmdStart() {
     }
   }
 
-  const feishuConfig = join(process.env.HOME || '~', '.config', 'opencode', 'feishu.json');
-  const qiweiConfig = join(process.env.HOME || '~', '.config', 'opencode', 'qiwei.json');
+  const feishuConfig = join(homedir(), '.config', 'opencode', 'feishu.json');
+  const qiweiConfig = join(homedir(), '.config', 'opencode', 'qiwei.json');
   const hasFeishu = existsSync(feishuConfig);
   const hasQiwei = existsSync(qiweiConfig);
 
-  if (hasFeishu && hasQiwei) {
-    await startFeishu(feishuConfig);
-    await startQiwei(qiweiConfig);
-  } else if (!hasFeishu && !hasQiwei) {
+  if (!hasFeishu && !hasQiwei) {
     console.log('\n  📡 选择通信通道:\n');
     console.log('  1. 飞书（推荐）— 扫码自动配置');
     console.log('  2. 企业微信  — 手动输入 botId + secret');
@@ -621,8 +634,9 @@ async function cmdStart() {
     if (answer) await setupQiweiInteractive();
   }
 
-  if (hasFeishu) await startFeishu(feishuConfig);
-  if (hasQiwei) await startQiwei(qiweiConfig);
+  // Re-check after setup may have created config files
+  if (existsSync(feishuConfig)) await startFeishu(feishuConfig);
+  if (existsSync(qiweiConfig)) await startQiwei(qiweiConfig);
 
   try {
     const { execSync } = await import('node:child_process');

@@ -4,7 +4,7 @@
  */
 
 import { DatabaseSync } from 'node:sqlite';
-import { existsSync, readFileSync, writeFileSync, mkdirSync } from 'node:fs';
+import { existsSync, readFileSync, writeFileSync, mkdirSync, renameSync } from 'node:fs';
 import { join } from 'node:path';
 
 const PROJECT_DIR = process.cwd();
@@ -47,42 +47,53 @@ export class StructuredMemory {
     ).all(limit) as { session_id: string; last_ts: number }[];
 
     let count = 0;
-    for (const { session_id, last_ts } of sessions) {
-      const rows = src.prepare(
-        'SELECT role, content FROM conversations WHERE session_id=? ORDER BY timestamp LIMIT 50'
-      ).all(session_id) as { role: string; content: string }[];
-      
-      const messages = rows
-        .filter(r => ['user', 'assistant'].includes(r.role))
-        .map(r => `${r.role === 'user' ? '👤' : '🤖'} ${r.content.slice(0, 200)}`);
+    try {
+      for (const { session_id, last_ts } of sessions) {
+        const rows = src.prepare(
+          'SELECT role, content FROM conversations WHERE session_id=? ORDER BY timestamp LIMIT 50'
+        ).all(session_id) as { role: string; content: string }[];
+        
+        const messages = rows
+          .filter(r => ['user', 'assistant'].includes(r.role))
+          .map(r => `${r.role === 'user' ? '👤' : '🤖'} ${r.content.slice(0, 200)}`);
 
-      if (messages.length === 0) continue;
+        if (messages.length === 0) continue;
 
-      const summary = messages.slice(0, 3).join(' | ').slice(0, 300);
-      const content = messages.join('\n').slice(0, 50000);
-      const date = new Date(last_ts * 1000).toISOString().split('T')[0];
+        const summary = messages.slice(0, 3).join(' | ').slice(0, 300);
+        const content = messages.join('
+').slice(0, 50000);
+        const date = new Date(last_ts * 1000).toISOString().split('T')[0];
 
-      this.db.prepare(
-        'INSERT OR REPLACE INTO sessions (id, date, summary, content, participant) VALUES (?, ?, ?, ?, ?)'
-      ).run(session_id, date, summary, content, 'user');
+        this.db.prepare(
+          'INSERT OR REPLACE INTO sessions (id, date, summary, content, participant) VALUES (?, ?, ?, ?, ?)'
+        ).run(session_id, date, summary, content, 'user');
 
-      count++;
+        count++;
+      }
+    } finally {
+      src.close();
     }
-    src.close();
     console.log(`[index] 索引了 ${count} 个会话`);
     return count;
   }
 
-  /** FTS5 搜索 */
+  /** FTS5 搜索（参数化查询，防注入） */
   search(query: string, limit = 10) {
+    // Sanitize: remove characters that break FTS5 syntax
+    const safe = query.replace(/["'*()]/g, ' ').replace(/\s+/g, ' ').trim();
+    if (!safe) return [];
+
     try {
+      // FTS5 prefix search: append * for partial match
+      const ftsQuery = safe.split(/\s+/).map(w => `"${w}"*`).join(' ');
       return this.db.prepare(
         'SELECT id, date, summary, content, participant, rank FROM sessions_fts WHERE sessions_fts MATCH ? ORDER BY rank LIMIT ?'
-      ).all(`"${query}"*`, limit);
+      ).all(ftsQuery, limit);
     } catch {
+      // Fallback to LIKE search
       return this.db.prepare(
         'SELECT id, date, summary, content, participant FROM sessions WHERE content LIKE ? OR summary LIKE ? LIMIT ?'
-      ).all(`%${query}%`, `%${query}%`, limit);
+      ).all(`%${safe}%`, `%${safe}%`, limit);
     }
   }
 
@@ -102,7 +113,9 @@ export class StructuredMemory {
     let content = existsSync(MEMORY_FILE) ? readFileSync(MEMORY_FILE, 'utf-8') : '# Memory Palace\n[0% — 0/2200 chars]\n\n';
     if (!content.includes(SECTION_MARKER)) content += `\n${SECTION_MARKER}\n`;
     content = content.replace(SECTION_MARKER, `${SECTION_MARKER}\n${entry}\n${SEPARATOR}`);
-    writeFileSync(MEMORY_FILE, content);
+    const tmp = MEMORY_FILE + '.tmp';
+    writeFileSync(tmp, content);
+    renameSync(tmp, MEMORY_FILE);
     return entry;
   }
 

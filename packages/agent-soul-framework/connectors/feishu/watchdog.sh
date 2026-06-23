@@ -59,7 +59,7 @@ while true; do
     continue
   fi
 
-  RUNNING=$(echo "$STATUS" | python3 -c "import sys,json; print(json.load(sys.stdin).get('running',False))" 2>/dev/null)
+  RUNNING=$(echo "$STATUS" | (python3 -c "import sys,json; print(json.load(sys.stdin).get('running',False))" 2>/dev/null || python -c "import sys,json; print(json.load(sys.stdin).get('running',False))" 2>/dev/null || echo "False"))
   if [ "$RUNNING" != "True" ]; then
     echo "[$(date '+%Y-%m-%d %H:%M:%S')] opencode-feishu 未在运行，启动..."
     $FEISHU_CMD start --daemon
@@ -79,7 +79,7 @@ while true; do
     continue
   fi
 
-  LAST_TIME=$(echo "$LAST_MSG" | python3 -c "import sys,json; print(json.load(sys.stdin).get('time',0))" 2>/dev/null)
+  LAST_TIME=$(echo "$LAST_MSG" | (python3 -c "import sys,json; print(json.load(sys.stdin).get('time',0))" 2>/dev/null || python -c "import sys,json; print(json.load(sys.stdin).get('time',0))" 2>/dev/null || echo "0"))
   if [ -z "$LAST_TIME" ] || [ "$LAST_TIME" = "0" ]; then
       LAST_TIME_SEC=$NOW
   else

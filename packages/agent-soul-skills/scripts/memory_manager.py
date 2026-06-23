@@ -394,7 +394,13 @@ class MemoryManager:
     def sync_from_opencode(self, incremental=True):
         """从 OpenCode 自身的数据库同步对话到魂器记忆库（支持增量同步）"""
         import time
-        opencode_db = os.path.expanduser("~/.local/share/opencode/opencode.db")
+                # OpenCode DB 路径（跨平台）
+        if sys.platform == "win32":
+            opencode_db = os.path.join(os.environ.get("APPDATA", os.path.expanduser("~")), "opencode", "opencode.db")
+        elif sys.platform == "darwin":
+            opencode_db = os.path.expanduser("~/Library/Application Support/opencode/opencode.db")
+        else:
+            opencode_db = os.path.expanduser("~/.local/share/opencode/opencode.db")
         if not os.path.exists(opencode_db):
             print("[FAIL] OpenCode 数据库不存在")
             return 0

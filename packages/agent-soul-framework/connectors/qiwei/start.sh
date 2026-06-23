@@ -75,7 +75,7 @@ if ! curl -s http://localhost:$OPENCODE_PORT/session >/dev/null 2>&1; then
   echo "❌ OpenCode server 未运行"
   echo ""
   echo "hunqi-qiwei 依赖 hunqi-core，请先启动核心:"
-  echo "  ./connectors/feishu/core-start.sh"
+  echo "  ./connectors/feishu/core-start.sh  (核心启动脚本跨频道通用)"
   echo ""
   echo "或使用 systemd 同时启动两者:"
   echo "  sudo systemctl start hunqi-core@\$USER"

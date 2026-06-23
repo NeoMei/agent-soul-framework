@@ -10,7 +10,7 @@
 
 import { MemoryManager } from '../memory/manager.js';
 import { StructuredMemory } from '../memory/structured.js';
-import { existsSync, readFileSync } from 'node:fs';
+import { existsSync, readFileSync, writeFileSync } from 'node:fs';
 import { join } from 'node:path';
 
 const PROJECT_DIR = process.cwd();
@@ -55,6 +55,8 @@ async function main() {
     console.log(`[EXEC] ${anchor.id}: ${anchor.principle?.slice(0, 60)}`);
     tasks.history = tasks.history || [];
     tasks.history.push({ task_id: anchor.id, date: today(), time: now().toISOString(), result: 'ok' });
+    // Persist task history to disk so deduplication works across runs
+    try { writeFileSync(TASKS_FILE, JSON.stringify(tasks, null, 2)); } catch (e) { console.error('[heartbeat] 保存任务历史失败:', (e as Error).message); }
   }
 
   console.log('[DONE] 心跳完成\n');

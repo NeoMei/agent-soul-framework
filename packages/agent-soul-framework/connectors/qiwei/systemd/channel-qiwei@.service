@@ -38,10 +38,10 @@ ExecStartPre=/bin/sh -c 'for i in $(seq 1 30); do if curl -s http://localhost:19
 ExecStart=%h/.hunqi/bin/opencode-qiwei start --daemon
 
 # 停止命令
-ExecStop=/bin/sh -c 'PID=$(ss -tlnp 2>/dev/null | grep "opencode-qiwei" | head -1 | sed -n "s/.*pid=\\([0-9]*\\).*/\\1/p"); [ -n "$PID" ] && kill "$PID" || true'
+ExecStop=/bin/sh -c 'pkill -f "opencode-qiwei start" 2>/dev/null || true; sleep 1; pkill -9 -f "opencode-qiwei start" 2>/dev/null || true'
 
 # 重载配置（修改 qiwei.json 后执行 systemctl reload 即可生效）
-ExecReload=/bin/sh -c '%h/.hunqi/bin/opencode-qiwei stop 2>/dev/null; sleep 2; %h/.hunqi/bin/opencode-qiwei start --daemon'
+ExecReload=/bin/sh -c '%h/.hunqi/bin/opencode-qiwei stop; sleep 2; %h/.hunqi/bin/opencode-qiwei start --daemon'
 
 # 重启策略
 Restart=always

@@ -3,8 +3,7 @@
  * 替代 Python memory_search.py
  */
 
-import { execSync } from 'node:child_process';
-import { existsSync, readFileSync } from 'node:fs';
+import { existsSync, readFileSync, readdirSync, statSync } from 'node:fs';
 import { join } from 'node:path';
 import { MemoryManager } from './manager.js';
 import { StructuredMemory } from './structured.js';
@@ -48,20 +47,36 @@ export function searchAll(query: string): SearchResult[] {
     mm.close();
   } catch {}
 
-  // 3. 文件搜索
+  // 3. 文件搜索（纯 JS，跨平台）
   const dirs = ['soul', 'knowledge', 'skills', 'memory', 'docs'];
+
+  const qLower = query.toLowerCase();
+
+  function walk(dir: string, depth = 0): void {
+    if (depth > 3) return;
+    try {
+      for (const entry of readdirSync(dir)) {
+        const full = join(dir, entry);
+        try {
+          const st = statSync(full);
+          if (st.isDirectory()) { walk(full, depth + 1); continue; }
+          if (entry.endsWith('.md') && st.size < 500_000) {
+            const text = readFileSync(full, 'utf-8');
+            if (text.toLowerCase().includes(qLower)) {
+              results.push({ source: '文件', snippet: full, file: full });
+              if (results.filter(r => r.source === '文件').length >= 5) return;
+            }
+          }
+        } catch {}
+      }
+    } catch {}
+  }
+
   for (const dir of dirs) {
     const dirPath = join(PROJECT_DIR, dir);
     if (!existsSync(dirPath)) continue;
-    try {
-      const output = execSync(
-        `grep -ri --include="*.md" -l "${query}" "${dirPath}" 2>/dev/null || true`,
-        { encoding: 'utf-8', timeout: 5000 }
-      );
-      for (const file of output.split('\n').filter(Boolean).slice(0, 5)) {
-        results.push({ source: '文件', snippet: file, file });
-      }
-    } catch {}
+    walk(dirPath);
+    if (results.filter(r => r.source === '文件').length >= 5) break;
   }
 
   // 4. MEMORY.md 搜索

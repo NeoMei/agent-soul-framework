@@ -35,7 +35,7 @@ jobs:
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
-      - name: Publish packages
-        run: npm run publish:packages || true
+      - name: Publish agent-soul-framework
+        run: npm publish -w packages/agent-soul-framework --access public
         env:
           NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}

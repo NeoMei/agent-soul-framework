@@ -6,12 +6,23 @@
 import { DatabaseSync } from 'node:sqlite';
 import { existsSync, mkdirSync, appendFileSync } from 'node:fs';
 import { join } from 'node:path';
-import { homedir } from 'node:os';
+import { homedir, platform } from 'node:os';
 
 const PROJECT_DIR = process.cwd();
 const MEMORY_DIR = join(PROJECT_DIR, 'memory');
 const DB_PATH = join(MEMORY_DIR, 'short-term', 'conversations.db');
-const OPENCODE_DB = join(homedir(), '.local', 'share', 'opencode', 'opencode.db');
+
+function getOpenCodeDbPath(): string {
+  const home = homedir();
+  if (platform() === 'win32') {
+    return join(process.env.APPDATA || join(home, 'AppData', 'Roaming'), 'opencode', 'opencode.db');
+  }
+  if (platform() === 'darwin') {
+    return join(home, 'Library', 'Application Support', 'opencode', 'opencode.db');
+  }
+  return join(home, '.local', 'share', 'opencode', 'opencode.db');
+}
+const OPENCODE_DB = getOpenCodeDbPath();
 
 export class MemoryManager {
   db: DatabaseSync;

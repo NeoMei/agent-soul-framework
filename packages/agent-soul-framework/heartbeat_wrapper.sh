@@ -11,11 +11,11 @@ if [ -f ".env" ]; then
 fi
 
 # 优先使用本地 hunqi-heartbeat，回退到全局命令
-if [ -f "node_modules/.bin/hunqi-heartbeat" ]; then
-    ./node_modules/.bin/hunqi-heartbeat >> heartbeat/runner.log 2>&1
-elif command -v hunqi-heartbeat &>/dev/null; then
-    hunqi-heartbeat >> heartbeat/runner.log 2>&1
+if [ -f "node_modules/.bin/agent-soul-heartbeat" ]; then
+    ./node_modules/.bin/agent-soul-heartbeat >> heartbeat/runner.log 2>&1
+elif command -v agent-soul-heartbeat &>/dev/null; then
+    agent-soul-heartbeat >> heartbeat/runner.log 2>&1
 else
-    echo "未找到 hunqi-heartbeat，请确保 @neomei/agent-soul-framework 已安装" >&2
+    echo "未找到 agent-soul-heartbeat，请确保 @neomei/agent-soul-framework 已安装" >&2
     exit 1
 fi

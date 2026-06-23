@@ -6,7 +6,14 @@
 set -e
 
 SESSIONS_FILE="${HOME}/.config/opencode/feishu-sessions.json"
-DB_FILE="${HOME}/.local/share/opencode/opencode.db"
+# Cross-platform DB path
+if [ -d "${HOME}/Library/Application Support/opencode" ]; then
+    DB_FILE="${HOME}/Library/Application Support/opencode/opencode.db"
+elif [ -d "${HOME}/.local/share/opencode" ]; then
+    DB_FILE="${HOME}/.local/share/opencode/opencode.db"
+else
+    DB_FILE="${HOME}/.local/share/opencode/opencode.db"
+fi
 MAX_MESSAGES="${MAX_MESSAGES_PER_SESSION:-50}"
 
 if [ ! -f "$SESSIONS_FILE" ]; then
@@ -23,7 +30,7 @@ fi
 SESSIONS=$(cat "$SESSIONS_FILE")
 
 # 使用单一 Python 脚本安全处理所有操作，避免注入
-python3 - "$SESSIONS_FILE" "$DB_FILE" "$MAX_MESSAGES" <<'PYEOF'
+(python3 2>/dev/null || python 2>/dev/null) - "$SESSIONS_FILE" "$DB_FILE" "$MAX_MESSAGES" <<'PYEOF'
 import json, sqlite3, sys, os
 
 sessions_file = sys.argv[1]
@@ -64,9 +71,4 @@ try:
 finally:
     conn.close()
 PYEOF
-
-if [ "$CLEANED" -gt 0 ]; then
-    echo "[session-cleanup] Cleaned $CLEANED session(s), next message will create new session"
-else
-    echo "[session-cleanup] All sessions are within limit ($MAX_MESSAGES messages)"
-fi
+# Note: Python script above handles all output and exit codes directly

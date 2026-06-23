@@ -25,7 +25,7 @@ Environment="USER=%I"
 EnvironmentFile=-%h/.hunqi/.env
 
 # 启动命令 - 使用 wrapper 解析 opencode 位置并启动 serve
-ExecStart=/bin/sh -c 'OPENCODE=$(%h/.hunqi/bin/opencode-feishu --resolve-opencode 2>/dev/null || command -v opencode); exec "$OPENCODE" serve --port 19876'
+ExecStart=/bin/sh -c 'OPENCODE=$(sh -c "opencode-feishu --resolve-opencode 2>/dev/null || opencode-qiwei --resolve-opencode 2>/dev/null" || command -v opencode); exec "$OPENCODE" serve --port 19876'
 
 # 停止命令（精确匹配端口，避免误杀）
 ExecStop=/bin/sh -c 'PID=$(ss -tlnp 2>/dev/null | grep ":19876 " | sed -n "s/.*pid=\\([0-9]*\\).*/\\1/p"); [ -n "$PID" ] && kill "$PID" || true'

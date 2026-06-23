@@ -9,6 +9,18 @@ if [ -f "$PROJECT_DIR/.env" ]; then
     set -a && source "$PROJECT_DIR/.env" && set +a
 fi
 
+# 跨平台端口PID查询 (lsof > ss > netstat)
+get_pid_on_port() {
+  local port="$1"
+  if command -v lsof &>/dev/null; then
+    lsof -iTCP:"$port" -sTCP:LISTEN -t 2>/dev/null | head -1
+  elif command -v ss &>/dev/null; then
+    ss -tlnp 2>/dev/null | grep ":$port " | sed -n "s/.*pid=\([0-9]*\).*/\1/p" | head -1
+  elif command -v netstat &>/dev/null; then
+    netstat -tlnp 2>/dev/null | grep ":$port " | awk "{print \$NF}" | cut -d/ -f1 | head -1
+  fi
+}
+
 # 自动检测 opencode-feishu 启动方式
 resolve_opencode_feishu() {
     if command -v opencode-feishu &>/dev/null; then

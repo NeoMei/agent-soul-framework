@@ -86,18 +86,25 @@ interface MessageOutput {
   parts?: Array<{ type?: string; text?: string; synthetic?: boolean }>;
 }
 
+let _dbSingleton: DatabaseSync | null = null;
+
+function getDb(): DatabaseSync {
+  if (_dbSingleton) return _dbSingleton;
+  const DB_PATH = path.join(PROJECT_DIR, 'memory', 'short-term', 'conversations.db');
+  fs.mkdirSync(path.dirname(DB_PATH), { recursive: true });
+  _dbSingleton = new DatabaseSync(DB_PATH);
+  _dbSingleton.exec('PRAGMA journal_mode=WAL');
+  _dbSingleton.exec(`CREATE TABLE IF NOT EXISTS conversations (
+    id INTEGER PRIMARY KEY AUTOINCREMENT, session_id TEXT, role TEXT,
+    content TEXT, timestamp REAL, created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP)`);
+  return _dbSingleton;
+}
+
 function saveMessage(sessionID: string | number | undefined, role: string, content: string): void {
+  const db = getDb();
   try {
-    const DB_PATH = path.join(PROJECT_DIR, 'memory', 'short-term', 'conversations.db');
-    fs.mkdirSync(path.dirname(DB_PATH), { recursive: true });
-    const db = new DatabaseSync(DB_PATH);
-    db.exec('PRAGMA journal_mode=WAL');
-    db.exec(`CREATE TABLE IF NOT EXISTS conversations (
-      id INTEGER PRIMARY KEY AUTOINCREMENT, session_id TEXT, role TEXT,
-      content TEXT, timestamp REAL, created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP)`);
     db.prepare('INSERT INTO conversations (session_id, role, content, timestamp) VALUES (?, ?, ?, ?)')
       .run(String(sessionID), role, content, Date.now() / 1000);
-    db.close();
   } catch {}
 }
 
@@ -171,7 +178,6 @@ export default function HunqiPlugin(_ctx: PluginContext) {
       // 清理不再需要的缓存（当前无需额外状态）
     },
 
-    'session.idle',
     'session.error': async () => {}
   };
 }

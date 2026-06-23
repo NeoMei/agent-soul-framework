@@ -46,10 +46,10 @@ function formatDangerousFileResponse(filePath, ext) {
 summarize "${filePath}" --model google/gemini-3-flash-preview
 
 【方式2 - 问答/详细分析】
-python3 skills/agent-gemini/scripts/ask_gemini.py "${filePath}" "请总结这份文件的核心内容"
+${process.platform === 'win32' ? 'python' : 'python3'} skills/agent-gemini/scripts/ask_gemini.py "${filePath}" "请总结这份文件的核心内容"
 
 【方式3 - 提取纯文本】
-python3 -c "import pdfplumber; print(''.join(p.extract_text() for p in pdfplumber.open('${filePath}').pages))"
+${process.platform === 'win32' ? 'python' : 'python3'} -c "import pdfplumber; print(''.join(p.extract_text() for p in pdfplumber.open('${filePath}').pages))"
 
 💡 推荐：方式1 最快，方式2 最灵活`;
   }
@@ -160,8 +160,8 @@ export default function ReadPlugin(ctx) {
             return `⚠️ 这是二进制文件 (${ext})，read 工具会显示乱码。
 
 建议处理方式：
-- 图片分析: python3 skills/agent-vision/scripts/vision.py "${filePath}" "描述图片内容"
-- 音视频: python3 skills/agent-hearing/scripts/hear.py "${filePath}"
+- 图片分析: ${process.platform === 'win32' ? 'python' : 'python3'} skills/agent-vision/scripts/vision.py "${filePath}" "描述图片内容"
+- 音视频: ${process.platform === 'win32' ? 'python' : 'python3'} skills/agent-hearing/scripts/hear.py "${filePath}"
 - 压缩包: unzip -l "${filePath}" 或 tar -tf "${filePath}"
 - 字体/其他: 用 file 命令查看类型`;
           }
