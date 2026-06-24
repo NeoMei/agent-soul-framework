@@ -354,6 +354,11 @@ async function cmdSetup() {
   }
   if (existsSync(join(PACKAGE_ROOT, 'TOOLS.md.example')) && !existsSync(join(cwd, 'TOOLS.md'))) {
     copyFileSync(join(PACKAGE_ROOT, 'TOOLS.md.example'), join(cwd, 'TOOLS.md')); copied++;
+  // 复制环境变量模板
+  const envExample = join(PACKAGE_ROOT, '.env.example');
+  const envTarget = join(cwd, '.env');
+  if (existsSync(envExample) && !existsSync(envTarget)) { copyFileSync(envExample, envTarget); copied++; }
+
   // 复制魂器插件（灵魂注入核心 — plugin/index.js 等）
   const srcPluginDir = join(PACKAGE_ROOT, 'plugin');
   if (existsSync(srcPluginDir)) {
