@@ -6,7 +6,7 @@
 
 set -e
 
-PROJECT_DIR="/path/to/your/.hunqi/agent-soul-framework"
+PROJECT_DIR="$HOME/.hunqi/agent-soul-framework"
 LOG_FILE="/tmp/hunqi-health-check.log"
 OPENCODE_PORT="${OPENCODE_PORT:-19876}"
 MAX_BUSY_SECONDS=600  # 10分钟认为会话卡死
@@ -47,7 +47,7 @@ check_stuck_sessions() {
     
     # 获取最近一条 busy 状态的日志时间
     local last_busy_time
-    last_busy_time=$(grep '"status":"busy"' /path/to/your/home/.config/opencode/feishu.log 2>/dev/null | tail -1 | grep -o '"time":[0-9]*' | cut -d: -f2 || echo "0")
+    last_busy_time=$(grep '"status":"busy"' $HOME/.config/opencode/feishu.log 2>/dev/null | tail -1 | grep -o '"time":[0-9]*' | cut -d: -f2 || echo "0")
     
     if [ -n "$last_busy_time" ] && [ "$last_busy_time" != "0" ]; then
         local elapsed=$((current_time - last_busy_time))
@@ -82,7 +82,7 @@ restart_services() {
     # 3. 启动 OpenCode serve
     log "  启动 OpenCode serve..."
     cd "$PROJECT_DIR"
-    export $(grep -v '^#' .env | xargs)
+    [ -f .env ] && export $(grep -v '^#' .env | xargs)
     nohup bash -c " opencode serve --port $OPENCODE_PORT > /tmp/opencode-serve.log 2>&1 &" >/dev/null 2>&1
     
     # 等待 serve 就绪

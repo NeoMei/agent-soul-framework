@@ -15,14 +15,14 @@ User=%I
 Group=%I
 
 # 工作目录
-WorkingDirectory=%h/.hunqi/agent-soul-framework/packages/agent-soul-framework
+WorkingDirectory=/home/%I/.hunqi/agent-soul-framework/packages/agent-soul-framework
 
 # 加载环境变量
-Environment="HOME=%h"
+Environment="HOME=/home/%I"
 Environment="USER=%I"
 
 # 从 .env 文件加载环境变量
-EnvironmentFile=-%h/.hunqi/.env
+EnvironmentFile=-/home/%I/.hunqi/.env
 
 # 启动命令 - 使用 wrapper 解析 opencode 位置并启动 serve
 ExecStart=/bin/sh -c 'OPENCODE=$(sh -c "opencode-feishu --resolve-opencode 2>/dev/null || opencode-qiwei --resolve-opencode 2>/dev/null" || command -v opencode); exec "$OPENCODE" serve --port 19876'

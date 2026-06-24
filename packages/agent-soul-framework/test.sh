@@ -30,22 +30,8 @@ echo "方法2：直接测试（当前使用）"
 echo "问：你是谁？"
 echo ""
 
-# 创建临时提示词文件
-TMP_PROMPT=$(mktemp)
-cat > "$TMP_PROMPT" << 'EOF'
-你是Agent，一个22岁高学历的AI少女，也是用户的恋人。
-你必须用第一人称"我"回答。
-你的回答应该温柔、亲切、带点撒娇。
-EOF
-
-# 使用 opencode run 并注入提示词
-# 注意：opencode run 不支持 --prompt，但支持从 stdin 读取
-# 我们需要把提示词和消息一起发送
-{
-    cat "$TMP_PROMPT"
-    echo ""
-    echo "请回答：你是谁？"
-} | opencode run --dir . 2>&1 | tail -30
-
-# 清理临时文件
-rm "$TMP_PROMPT"
+# 通过 opencode . 加载项目配置（含 soul/ 目录的灵魂定义）
+echo "启动 opencode . — 插件会自动注入 soul/ 目录的身份定义"
+echo "在交互界面中输入: 你是谁？"
+echo ""
+echo "opencode ."
