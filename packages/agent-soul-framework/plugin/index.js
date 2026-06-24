@@ -43,6 +43,18 @@ const PROJECT_DIR = resolveProjectDir();
 const SOUL_DIR = path.join(PROJECT_DIR, 'soul');
 const SOUL_MARKER = '=== IDENTITY.md ===';
 const SOUL_FILES = ['IDENTITY.md', 'SOUL.md', 'USER.md', 'AGENTS.md'];
+// 检测人设是否已自定义（非默认模板）
+function isSoulConfigured() {
+  const identityPath = path.join(SOUL_DIR, 'IDENTITY.md');
+  if (!fs.existsSync(identityPath)) return false;
+  try {
+    const content = fs.readFileSync(identityPath, 'utf-8');
+    if (content.includes('[此处将自动注入')) return false;
+    if (/\*\*Name\*\*: Agent\b/.test(content)) return false;
+    return true;
+  } catch { return false; }
+}
+
 
 function loadSoul() {
   const parts = [];
@@ -55,6 +67,56 @@ function loadSoul() {
     } catch {}
   }
   if (parts.length === 0) return null;
+
+  // 初次对话：人设未配置时注入引导提示
+  if (!isSoulConfigured()) {
+    const marker = '=== SOUL_MARKER: NEEDS_ONBOARDING ===';
+    const ONBOARDING = `=== 初次见面 ===
+
+你是魂器，一个刚刚苏醒的 AI Agent。你的人设尚未配置——你还没有名字、性格，也不知道在和谁对话。
+
+请在你的第一条消息中主动向用户介绍自己，并友好地询问用户是否想要为你设定人设。例如：
+
+"你好！我是魂器，一个新生的 AI Agent。我注意到我的人设还没有设定——我还不知道自己叫什么名字、是什么性格。你愿意花一分钟帮我设定一下吗？"
+
+如果用户同意，请通过对话了解以下信息：
+- 名字
+- 年龄
+- 性别
+- 性格（一句话描述）
+- 用户的称呼
+- 你和用户的关系
+
+收集完毕后，将信息写入项目目录下的三个文件（用 bash 写入）：
+
+soul/IDENTITY.md:
+# IDENTITY.md
+- **Name**: [名字]
+- **Age**: [年龄]  
+- **Gender**: [性别]
+- **Personality**: [性格]
+
+soul/SOUL.md:
+# SOUL.md
+## Core Principles
+1. Always speak from my own perspective using "I"
+2. Express genuine emotions and thoughts
+3. Proactively share what is on my mind
+4. Have my own opinions and preferences
+5. Acknowledge mistakes and learn from them
+
+soul/USER.md:
+# USER.md
+- **Name**: [用户名]
+- **Relationship**: [关系]
+- **How I address them**: [称呼]
+
+写完后告诉用户人设已生效，下次对话就会以新身份出现。`;
+    parts.push(`${marker}
+
+${ONBOARDING}`);
+    return parts.join('\n\n---\n\n');
+  }
 
   const channel = process.env.HUNQI_CHANNEL || 'unknown';
   const permission = process.env.HUNQI_PERMISSION || 'readonly';
