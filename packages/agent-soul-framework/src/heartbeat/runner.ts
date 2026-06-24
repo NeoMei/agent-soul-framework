@@ -1,3 +1,4 @@
+#!/usr/bin/env node
 /**
  * 魂器心跳 Runner — TypeScript 版
  * 替代 Python heartbeat/runner_v2.py
