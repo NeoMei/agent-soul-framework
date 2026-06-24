@@ -4,7 +4,13 @@
 // 3. 知识库 (knowledge/)
 // 4. 长期记忆 (memory/long-term/)
 import { tool } from "@opencode-ai/plugin";
-import { DatabaseSync } from "node:sqlite";
+// node:sqlite 仅 Node 22.5+ 可用，旧版本动态导入降级
+let DatabaseSync = null;
+try {
+  ({ DatabaseSync } = await import("node:sqlite"));
+} catch {
+  // Node < 22.5: 搜索降级为纯文件搜索
+}
 import { join } from "node:path";
 import { existsSync, readFileSync, readdirSync, statSync } from "node:fs";
 
@@ -50,6 +56,8 @@ function searchVector(query, limit = 5) {
 // ─── Layer 1: 短期对话搜索 ─────────────────────────────
 function searchConversations(query, limit = 15) {
   if (!existsSync(DB_PATH)) return [];
+ 
+  if (!DatabaseSync) return [];
   const db = new DatabaseSync(DB_PATH, { readOnly: true });
   try {
     return db
@@ -63,6 +71,7 @@ function searchConversations(query, limit = 15) {
 // ─── Layer 2: 结构化记忆 FTS5 搜索 ─────────────────────
 function searchStructured(query, limit = 10) {
   if (!existsSync(MEMORIES_DB)) return [];
+  if (!DatabaseSync) return [];
   const db = new DatabaseSync(MEMORIES_DB, { readOnly: true });
   try {
     // 先尝试 FTS5
@@ -263,6 +272,7 @@ export default function SearchMemoryPlugin(ctx) {
           const limit = args.limit || 15;
           if (!existsSync(DB_PATH)) return "记忆数据库暂无记录。";
 
+          if (!DatabaseSync) return "记忆数据库暂不可用（需要 Node.js 22.5+）。";
           const db = new DatabaseSync(DB_PATH, { readOnly: true });
           let results = [];
           try {

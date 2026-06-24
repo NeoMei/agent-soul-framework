@@ -9,7 +9,13 @@
 import fs from 'fs';
 import path from 'path';
 import { fileURLToPath } from 'url';
-import { DatabaseSync } from 'node:sqlite';
+// node:sqlite 仅 Node 22.5+ 可用，旧版本动态导入降级
+let DatabaseSync = null;
+try {
+  ({ DatabaseSync } = await import('node:sqlite'));
+} catch {
+  // Node < 22.5: 数据库功能降级，灵魂注入仍正常工作
+}
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 
@@ -79,9 +85,10 @@ function injectSoul(output) {
 }
 
 
-let _dbSingleton: DatabaseSync | null = null;
+let _dbSingleton = null;
 
-function getDb(): DatabaseSync {
+function getDb() {
+  if (!DatabaseSync) return null;
   if (_dbSingleton) return _dbSingleton;
   const DB_PATH = path.join(PROJECT_DIR, 'memory', 'short-term', 'conversations.db');
   fs.mkdirSync(path.dirname(DB_PATH), { recursive: true });
@@ -95,6 +102,7 @@ function getDb(): DatabaseSync {
 
 function saveMessage(sessionID, role, content) {
   const db = getDb();
+  if (!db) return;
   try {
     db.prepare('INSERT INTO conversations (session_id, role, content, timestamp) VALUES (?, ?, ?, ?)')
       .run(String(sessionID), role, content, Date.now() / 1000);
