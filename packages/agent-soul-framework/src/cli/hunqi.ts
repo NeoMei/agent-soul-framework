@@ -354,6 +354,18 @@ async function cmdSetup() {
   }
   if (existsSync(join(PACKAGE_ROOT, 'TOOLS.md.example')) && !existsSync(join(cwd, 'TOOLS.md'))) {
     copyFileSync(join(PACKAGE_ROOT, 'TOOLS.md.example'), join(cwd, 'TOOLS.md')); copied++;
+  // 复制魂器插件（灵魂注入核心 — plugin/index.js 等）
+  const srcPluginDir = join(PACKAGE_ROOT, 'plugin');
+  if (existsSync(srcPluginDir)) {
+    const dstPluginDir = join(cwd, 'plugin');
+    if (!existsSync(dstPluginDir)) mkdirSync(dstPluginDir, { recursive: true });
+    for (const f of rd(srcPluginDir)) {
+      const src = join(srcPluginDir, f);
+      const dst = join(dstPluginDir, f);
+      if (statSync(src).isFile() && !existsSync(dst)) { copyFileSync(src, dst); copied++; }
+    }
+  }
+
   }
   console.log('  📝 模板初始化: 复制了 ' + copied + ' 个配置模板');
 
