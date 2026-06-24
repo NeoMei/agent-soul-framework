@@ -1,13 +1,18 @@
 {
   "name": "hunqi-plugin",
-  "version": "4.5.0",
+  "version": "4.5.28",
   "description": "魂器 OpenCode 插件 — 自动注入灵魂 + 保存对话",
   "type": "module",
   "main": "index.js",
   "manifest": "manifest.json",
   "author": "NeoMei",
   "license": "MIT",
-  "keywords": ["opencode", "plugin", "soul", "memory"],
+  "keywords": [
+    "opencode",
+    "plugin",
+    "soul",
+    "memory"
+  ],
   "peerDependencies": {
     "opencode-ai": ">=1.15.0"
   },
