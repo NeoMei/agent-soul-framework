@@ -2,457 +2,412 @@
 
 > **给 AI Agent 装上灵魂 — 持久记忆 · 自主学习 · 多端部署 · 心跳自治**
 
-魂器是为 [OpenCode](https://github.com/anomalyco/opencode) 打造的管理层框架。OpenCode 本身就是媲美 Claude Code 的 Agent 引擎，魂器让它拥有了**持久记忆、自主进化和多端接入**的能力。
+[![npm version](https://img.shields.io/npm/v/@neomei/agent-soul-framework)](https://www.npmjs.com/package/@neomei/agent-soul-framework)
+[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
+[![Node.js](https://img.shields.io/badge/node-%3E%3D20-brightgreen)](https://nodejs.org)
 
-如果说 OpenCode 是「大脑」，魂器就是「灵魂」。
+魂器是运行在 [OpenCode](https://github.com/anomalyco/opencode) 之上的 **AI Agent 管理框架**。OpenCode 是业界顶尖的 Agent 引擎，魂器赋予了它 **持久记忆、自主进化、多端接入和心跳自治** 的能力。
+
+> OpenCode = 大脑，魂器 = 灵魂。
 
 ---
 
-## 🎯 一句话理解魂器
+## 🎯 项目目的
+
+OpenCode 本身是一个出色的编程 Agent，但它缺乏「自我」——每次重启都是全新人格，记不住之前的对话，也不会主动成长。魂器填补了这一层：
+
+| 能力 | 无魂器 | 有魂器 |
+|------|--------|--------|
+| **身份** | 默认「我是 OpenCode」 | 自定义名字、性格、人设，每次对话都保持一致 |
+| **记忆** | 对话结束即丢失 | SQLite + FTS5 持久存储，跨会话检索 |
+| **学习** | 不会自己沉淀知识 | 每 24 小时自动提取对话中的知识点归档 |
+| **接入** | 仅 CLI | CLI + 飞书 + 企业微信，同一人格多端同步 |
+| **自治** | 被动响应 | crontab 心跳驱动，主动同步、索引、执行定时任务 |
+
+### 一句话理解
 
 ```
 你有一个会写代码的 AI Agent（OpenCode）
-我给它加上：
+魂器给它加上：
   ✅ 记住你们每一次对话（不会每次醒来都忘了你）
   ✅ 每天自动提炼对话中的知识，越聊越懂你
   ✅ 接上飞书/企微，你在哪它就在哪
   ✅ 定时心跳，主动思考、主动学习、主动问候
-  ✅ 多个分身并行工作，写完文章回头继续陪你聊
-
-这就是魂器。
 ```
 
 ---
 
-## ⚔️ 为什么能替代 OpenClaw
+## 🏗️ 实现方式
 
-> OpenClaw 是早期 AI Agent 基础设施的里程碑，但它的技术负债在真实生产环境中层层暴露。
+### 架构总览
 
-笔者在生产环境中踩过的坑：`pip` 依赖崩溃导致 venv 不可用、Kimi API key 过期全线宕机、session 记忆全部丢失、升级版本后配置被覆盖。魂器从这些坑里爬出来，重新设计：
+```
+┌─────────────────────────────────────────────────┐
+│                  OpenCode 引擎                     │
+│  (LLM 调度 · 工具执行 · 会话管理 · 上下文压缩)      │
+├─────────────────────────────────────────────────┤
+│              魂器 Agent Soul Framework             │
+│                                                   │
+│  ┌──────────┐ ┌──────────┐ ┌──────────────────┐  │
+│  │ 灵魂注入  │ │ 记忆系统  │ │   知识自进化      │  │
+│  │ plugin/  │ │ memory/  │ │   knowledge/     │  │
+│  │ index.js │ │ manager  │ │   daily.ts       │  │
+│  └──────────┘ └──────────┘ └──────────────────┘  │
+│  ┌──────────┐ ┌──────────┐ ┌──────────────────┐  │
+│  │ 心跳自治  │ │ CLI 入口  │ │   权限 + 过滤     │  │
+│  │heartbeat │ │ hunqi.ts │ │ auth.ts +        │  │
+│  │ runner   │ │          │ │ content-filter   │  │
+│  └──────────┘ └──────────┘ └──────────────────┘  │
+├─────────────────────────────────────────────────┤
+│                外部连接器（可选）                    │
+│  ┌─────────────┐  ┌──────────────┐               │
+│  │opencode-     │  │ opencode-    │               │
+│  │  feishu     │  │   qiwei      │               │
+│  │飞书桥接      │  │ 企业微信桥接  │               │
+│  └─────────────┘  └──────────────┘               │
+└─────────────────────────────────────────────────┘
+```
 
-| 痛点 | OpenClaw 原罪 | 魂器解法 |
-|------|--------------|---------|
-| **运行时地狱** | Python venv + pip，`pyarrow` / `lancedb` 编译是玄学 | 核心框架纯 TypeScript，`node:sqlite` 内置，零 Python 依赖 |
-| **LLM 单点故障** | 硬编码单个 API endpoint，key 过期 = 全线瘫痪 | 通过 opencode 调度，provider 热切换（Kimi → DeepSeek → Gemini，一行配置） |
-| **升级毁灭** | 改 `openclaw.json` 影响所有项目 | 每个项目独立 `.opencode/opencode.json`，互不干扰 |
-| **记忆 = 全量 dump** | jsonl 文件遍历，无索引，搜索 = 全表扫描 | SQLite + FTS5 全文索引，毫秒级检索 |
-| **知识靠手写** | 手动整理知识卡，AI 不会自己学 | 每日 → 每周 → 每月三层自动知识提取管线 |
-| **飞书是唯一 Channel** | 单一通道，换企微要重写 | 飞书 + 企业微信双通道就绪，Channel 插件按需安装，核心框架零耦合 |
-| **技能与核心耦合** | 所有能力打包一起，Python 脚本污染核心 | 核心包纯 TS，含 Python 的 skill 作为可选插件包安装 |
+### 核心机制
 
-**一句话**：魂器不是 OpenClaw 的 fork，是从零重新设计的管理框架。它把 LLM 调用交给 opencode（业界顶尖 Agent 引擎），自己专注做好管理、记忆、调度。
+#### 1. 灵魂注入 (Plugin Hook)
+
+`plugin/index.js` 通过 OpenCode 插件系统注册 7 个钩子，在每次 LLM 调用前自动注入灵魂：
+
+```
+session.created → injectSoul()
+session.compacted → injectSoul()        // 上下文压缩后重新注入
+experimental.chat.system.transform → injectSoul()
+chat.message → saveMessage()            // 自动存档每条对话
+session.idle → injectSoul()             // 无头模式保活
+```
+
+- **注入内容**：`soul/IDENTITY.md` + `soul/SOUL.md` + `soul/USER.md` + `soul/AGENTS.md`
+- **防重复**：通过 SOUL_MARKER 标识检查，避免多次注入
+- **onboarding**：人设未配置时，引导 Agent 主动询问用户设定身份
+- **通道感知**：CLI 只读 | 飞书中等限制 | Admin 完全开放
+
+#### 2. 记忆系统 (Memory)
+
+四层存储 + 两套索引：
+
+```
+Layer 1: conversations.db      短期 SQLite (实时写入)
+Layer 2: memories.db + MEMORY.md  FTS5 全文索引 + 关键条目管理
+Layer 3: knowledge/            知识库卡片 (每日自动归档)
+Layer 4: memory/long-term/     长期 Markdown 备份
+Layer 5: ChromaDB              可选向量语义搜索
+```
+
+- **FTS5 全文索引**：毫秒级检索，支持前缀匹配
+- **MEMORY.md 容量管理**：2,200 字符硬上限，FIFO 自动淘汰
+- **node:sqlite 内置**：零外部依赖，Node.js >= 22.5 原生支持（< 22.5 降级为纯文件搜索）
+- **OpenCode DB 同步**：自动从 OpenCode 引擎数据库拉取历史对话
+
+#### 3. 知识自进化 (Knowledge)
+
+`knowledge/daily.ts` 每 24 小时自动运行（通过 crontab 调度）：
+
+```
+对话记录 → MemoryManager 读取最近 24h → 组装 prompt →
+调用 LLM 提取知识点 → 写入 knowledge/{分类}/{文件}.md
+```
+
+八大知识分类：body | emotion | evolution | growth | intimacy | methodology | philosophy | system
+
+- **防反馈循环**：通过 `HUNQI_KNOWLEDGE_WORKER` 环境标记，知识提取 worker 的消息不会被再次存档
+- **智能去重**：提示包含已有知识索引，避免重复提取
+
+#### 4. 心跳自治 (Heartbeat)
+
+`heartbeat/runner.ts` 由 crontab 每 30 分钟触发：
+
+```
+1. 记忆同步 (OpenCode DB → conversations.db)
+2. FTS5 索引重建 (最近 20 个会话)
+3. 锚点任务 (固定时间执行)
+4. 动态任务 (条件触发)
+5. 任务去重 (历史记录防止重复执行)
+```
+
+#### 5. 权限控制
+
+- **auth.ts**：基于飞书 chat_id 的 Admin/readonly 身份验证
+- **content-filter.ts / content-filter.js**：关键词匹配，拦截非专业话题
+- **通道感知**：CLI 严格限制 | Admin 完全放行
+
+### 技术选型
+
+| 层面 | 选型 | 理由 |
+|------|------|------|
+| 核心语言 | TypeScript (ES2024) | 类型安全、OpenCode 原生兼容 |
+| 数据库 | node:sqlite (内置) | 零安装、零配置、WAL 模式 |
+| 全文索引 | SQLite FTS5 | 毫秒级、零外部依赖 |
+| 插件系统 | OpenCode Plugin API | 引擎原生、hook-based |
+| 调度 | crontab + systemd | Linux 原生、无额外运行时 |
+| LLM 接入 | 通过 OpenCode | provider 抽象、热切换 |
 
 ---
 
-## 🧠 Hermes 七大核心机制全量移植
+## 📦 安装
 
-> Hermes 是魂器的前身记忆系统，解决了「AI 记不住、不会自己学、容易过度热情」三大顽疾。
-> 魂器将 Hermes 的 7 大核心机制完整移植，并在工程上做了增强。
+### 前置条件
 
-### 1. 结构化记忆系统
+- **Node.js >= 20**（推荐 22.5+ 以获得完整 node:sqlite 支持）
+- **OpenCode**（引擎本体）— 安装方式见 [OpenCode 官方文档](https://github.com/anomalyco/opencode)
+- **Linux / macOS**（Windows 部分功能受限，systemd 不可用）
 
-```
-记忆写入    → conversation.db (实时) → long-term 备份 (每日)
-记忆检索    → FTS5 全文 (毫秒) → SQLite LIKE (精确)
-记忆管理    → MEMORY.md (关键条目) → heartbeat compact (自动压缩)
-```
-
-- **FTS5 全文索引** — 所有会话实时索引，关键词毫秒级检索
-- **MEMORY.md 条目化管理** — 2,200 字符容量上限，`§§` 分隔条目，支持 `add/replace/remove` 精确操作
-- **智能淘汰** — 满容自动删除最旧条目，先入先出
-- **LLM Compact** — 调用 opencode 合并相似条目，压缩冗余保留核心
-- **纯 TypeScript 实现** — `node:sqlite` 原生模块，无需 Python/ChromaDB
+### 方式一：一键安装（推荐）
 
 ```bash
-hunqi memory status                # 查看容量
-hunqi memory add "今天学会..."      # 添加条目
-hunqi memory search "关键词"        # FTS5 全文搜索
-hunqi heartbeat                    # 同步并压缩记忆
+curl -fsSL https://raw.githubusercontent.com/NeoMei/agent-soul-framework/master/install.sh | bash
 ```
 
-### 2. wakeAgent 门控 — 零 Token 决策
+这会自动完成：
+1. 检查 Node.js 版本
+2. `npm install -g @neomei/agent-soul-framework`
+3. `agent-soul-framework setup`（初始化项目目录、复制配置模板）
 
-> AI Agent 在心跳中容易「过度热情」——半夜三点还在想主人、没新消息强行生成问候。
-
-门控机制让脚本做第一层判断，预检不通过 = 完全不调用 LLM = 零 token 消耗：
-
-```json
-{
-  "id": "proactive-message",
-  "pre_check_script": "scripts/pre_check_user.py"
-}
-// 脚本输出 {"wakeAgent": false, "reason": "深夜23:00-08:00"}
-// → 跳过，零 token ✅
-```
-
-触发条件示例：深夜时段、最近 30 分钟无互动、用户标记为忙碌……
-
-### 3. 作业链 (context_from)
-
-心跳任务可以形成级联流水线。前置作业的 LLM 输出自动注入为下游作业的上下文：
-
-```json
-{ "id": "daily-knowledge",  "deliver": "none" },
-{
-  "id": "weekly-summary",
-  "context_from": ["daily-knowledge", "daily-report"],
-  "deliver": "feishu"
-}
-// weekly-summary 的提示词中自动包含:
-// ┌─ [daily-knowledge] 的输出 ──────
-// 今日提取知识: [3条]
-// ┌─ [daily-report] 的输出 ──────
-// 今日互动: 闲聊15轮 + 拍照2次
-// └────────────────────────────
-```
-
-### 4. 四级交付路由 (deliver)
-
-精确控制 AI 的输出投递：
-
-| deliver | 行为 | 场景 |
-|---------|------|------|
-| `"feishu"` | 推送到飞书卡片 | 主动问候、日报 |
-| `"local"` | 仅写入本地日志 | 调试、审计 |
-| `"none"` | 静默执行不投递 | 记忆整理、知识提取 |
-| `[SILENT]` | Agent 响应首行含此标记 → 完全静默 | LLM 自行判断「不打扰」 |
-
-### 5. 子 Agent 安全白名单
-
-指挥官模式——分身处理长任务，本尊继续陪聊。分身能力受限：
-
-| ✅ 分身可以 | ❌ 分身禁止 |
-|-----------|-----------|
-| 文件读写 | 记忆写入（MEMORY.md） |
-| Bash 命令 | 飞书消息发送 |
-| 网页抓取 | 心跳配置修改 |
-| 代码搜索 | `.opencode/` 配置修改 |
-| 向量检索 | 递归委托（禁孙 agent） |
-
-### 6. 技能自主创建 — 闭环学习
-
-`skill_creator.py` 监控会话的工具调用模式。触发条件：**单次会话 ≥ 5 次工具调用 + 任务成功** → 自动调用 LLM 提取工作流 → 生成标准 SKILL.md → 保存到 `skills/agent-created/`。
-
-下次启动时自动加载。AI 把自己学会的东西封装成可复用技能——这就是「自我进化」：
+### 方式二：npm 全局安装
 
 ```bash
-hunqi skill-create              # 自动评估
-hunqi skill-create --dry-run    # 仅评估
-hunqi skill-create --force      # 强制创建
+npm install -g @neomei/agent-soul-framework
+agent-soul-framework setup
 ```
 
-> 需要安装可选技能包：`npm install -g @neomei/agent-soul-skills`
+### 方式三：从源码安装
 
-### 7. 会话血统追踪
+```bash
+git clone https://github.com/NeoMei/agent-soul-framework.git
+cd agent-soul-framework
+npm install --legacy-peer-deps
+npm run build
+npm link
+agent-soul-framework setup
+```
 
-OpenCode 的 `/compact` 操作会压缩上下文，可能导致关键记忆丢失。血统追踪机制：
+### 安装后配置
 
-- `/compact` 前自动提取关键对话 → 刷入 MEMORY.md
-- 追踪父 → 子 session 关系链（`session_lineage.json`）
-- 支持血统深度查询——「这条记忆从哪个会话来的？」
-- 压缩后**人格不丢失**：每次 LLM 调用前通过 plugin hook 重新注入灵魂文件
+`setup` 命令会在当前目录创建项目结构并复制默认模板。自定义你的 Agent 人设：
+
+```bash
+# 编辑身份文件
+vim soul/IDENTITY.md    # 名字、年龄、性格
+vim soul/SOUL.md        # 行为准则
+vim soul/USER.md        # 用户信息和关系
+
+# 配置 API Key 和连接器
+cp .env.example .env
+vim .env
+
+# 查看完整配置状态
+agent-soul-framework doctor
+```
+
+### 首次对话：自动人设引导
+
+如果 `soul/IDENTITY.md` 仍是默认模板（`Name: Agent`），魂器插件会自动注入 onboarding 提示词，Agent 会在第一条消息中主动询问你：
+
+> "你好！我是魂器，一个新生的 AI Agent。我注意到我的人设还没有设定——我还不知道自己叫什么名字、是什么性格。你愿意花一分钟帮我设定一下吗？"
+
+跟随对话引导即可完成人设配置，Agent 会自动写入文件。
 
 ---
 
-## 🏛️ 架构总览
+## 🔌 插件与依赖关系
+
+### 核心依赖（自动安装）
+
+| 包名 | 版本 | 用途 |
+|------|------|------|
+| `@neomei/agent-soul` | ^4.5.0 | 魂器核心库（共享类型、工具、搜索接口） |
+| `zod` | ^3.23.0 | Schema 验证（插件参数校验） |
+
+### 可选连接器（按需安装）
+
+魂器核心框架 **不依赖** 任何外部连接器。如需多端接入，按需安装：
+
+| 包名 | 用途 | 安装命令 |
+|------|------|---------|
+| `@neomei/opencode-feishu` | 飞书 WebSocket 桥接 | `npm install -g @neomei/opencode-feishu` |
+| `@neomei/opencode-qiwei` | 企业微信连接器 | `npm install -g @neomei/opencode-qiwei` |
+| `@neomei/agent-soul-skills` | 可选技能包（含 Python 脚本） | `npm install -g @neomei/agent-soul-skills` |
 
 ```
-                        ┌────────────────────────────────────┐
-                        │          魂器（管理层）              │
-                        │  TypeScript 核心 · Cron 调度        │
-                        │  可选 Python 技能插件包             │
-                        │                                    │
-  ┌─ 记忆系统 ──────────┤  SQLite + FTS5                      │
-  │  统一记忆搜索       │  会话历史 · MEMORY.md · 长短期备份   │
-  │                     │                                    │
-  ├─ 知识引擎 ──────────┤  每日提取 · 每周精炼 · 每月审查      │
-  │  自动知识管线       │  8大分类 · 向量索引 · markdown 归档  │
-  │                     │                                    │
-  ├─ 心跳调度 ──────────┤  wakeAgent 门控 · 作业链 · 交付路由  │
-  │  自主治理           │  crontab 30min · 文件锁防并发       │
-  │                     │                                    │
-  ├─ 灵魂注入 ──────────┤  SOUL.md + IDENTITY.md + USER.md   │
-  │  人格持久化         │  每次 LLM 调用前自动注入            │
-  │                     │                                    │
-  └─ 技能体系 ──────────┤  拍照 · 语音 · 视觉 · 听觉 · 公众号  │
-    7个技能包           │  闭环学习 · 技能自动创建            │
-                        └──────────────┬─────────────────────┘
-                                       │
-                        唯一通道：opencode run / serve API
-                                       │
-                        ┌──────────────┴─────────────────────┐
-                        │          OpenCode 引擎              │
-                        │  LLM 推理 · Bash · 文件编辑 · 搜索   │
-                        │  Kimi / DeepSeek / Gemini / ...     │
-                        │  媲美 Claude Code 的 Agent 能力      │
-                        └──────────────┬─────────────────────┘
-                                       │
-              ┌────────────────────────┴──────────────────────┐
-               │              Channel 桥接层（可选插件）            │
-               │                                               │
-               │  opencode-feishu        opencode-qiwei         │
-               │  飞书 WebSocket 长连    企微 WebSocket 长连     │
-               │  流式卡片 · 工具状态     Markdown · 流式回复     │
-               └───────────────────────────────────────────────┘
-
-> Channel 桥接层需要单独安装：`npm install -g @neomei/opencode-feishu @neomei/opencode-qiwei`
+@neomei/agent-soul-framework (核心，必需)
+├── @neomei/agent-soul (依赖，自动安装)
+├── @neomei/opencode-feishu ─── 可选：飞书接入
+├── @neomei/opencode-qiwei  ─── 可选：企微接入
+└── @neomei/agent-soul-skills ── 可选：技能扩展
 ```
 
-### 核心设计原则
-
-> **魂器绝不直接调用任何 LLM API。** 所有模型推理必须通过 opencode。
-
-魂器只做管理：文件读写、数据库操作、任务调度、配置管理、数据管道。就像操作系统管理硬件，魂器管理 opencode 引擎。
-
----
-
-## 🚀 快速开始
-
-### 前置要求
-
-- **Node.js ≥ 20**
-- **OpenCode 引擎**: `npm install -g opencode-ai`
-
-### 安装（推荐：先下载再执行）
+### 飞书安装示例
 
 ```bash
-curl -fsSL https://raw.githubusercontent.com/NeoMei/agent-soul-framework/master/install.sh -o install.sh
-bash install.sh
-```
+npm install -g @neomei/opencode-feishu
 
-> 为什么先下载？`curl | bash` 在网络波动时可能导致脚本截断（如 `echo` 变成 `cho`）。先下载可确保完整性。
->
-> 如果坚持一行安装：`curl -fsSL ... | bash` 亦可，脚本已内置管道检测警告。
+# 方式1: CLI 一键启动
+agent-soul-framework start    # 交互式选择连接器
 
-自动完成：下载魂器 → 构建 → 全局链接 → 初始化记忆 → 配置心跳。飞书/企微通道插件需按需单独安装。
-
-### 安装可选 channel 插件
-
-```bash
-npm install -g @neomei/opencode-feishu   # 飞书通道
-npm install -g @neomei/opencode-qiwei    # 企业微信通道
-```
-
-### 启动（一行）
-
-```bash
-hunqi start
-```
-
-自动完成：启动 opencode 引擎 → 运行心跳初始化记忆。已安装的 channel 插件会自动启动。
-
-### 验证
-
-```bash
-hunqi doctor              # 检查所有组件状态
-```
-
-### 卸载（一行）
-
-```bash
-curl -fsSL https://raw.githubusercontent.com/NeoMei/agent-soul-framework/master/uninstall.sh | bash
-```
-
-输出示例：
-```
-🔍 魂器诊断报告
-────────────────────────────────────────
-Node.js:      v24.15.0  ✅
-OpenCode:     1.15.5  ✅
-opencode serve: 运行中 :19876 ✅
-opencode-feishu: 未安装 ⚠️（可选 channel 插件）
-飞书配置:      未配置 ⚠️  (opencode-feishu setup)
-企微配置:      未配置（可选）
-项目灵魂:      ✅
-记忆系统:      ✅ MEMORY.md | ✅ conversations.db
-记忆条目:      142 条
-心跳调度:      crontab 已配置 ✅
-环境变量:      .env 存在，已配置 3 个变量 ✅
-```
-
-`hunqi start` 可一键完成上述所有操作。
-
-### 飞书连接（仅一次）
-
-```bash
-npm install -g @neomei/opencode-feishu   # 先安装可选 channel 插件
-opencode-feishu setup                    # 终端扫码，自动获取凭证
-```
-
-> `@neomei/opencode-feishu`、`@neomei/opencode-qiwei` 为可选 channel 插件，按需单独安装。核心框架不强制依赖它们。
-
-### 生产部署（systemd — 推荐）
-
-install.sh 安装时会询问是否安装 systemd 服务。若当时跳过，可手动安装：
-
-```bash
-cd ~/.hunqi/agent-soul-framework/packages/agent-soul-framework
-# 仅当已安装 opencode-feishu 时才需要执行 systemd 安装
+# 方式2: systemd 生产部署（推荐）
 sudo ./connectors/feishu/systemd/install-systemd.sh
 sudo systemctl start hunqi-core@$USER
-# 仅当已安装 opencode-feishu 时才启动飞书通道
 sudo systemctl start channel-feishu@$USER
 ```
 
-特性：开机自启 · 崩溃自动恢复 · 挂起/唤醒后自动重启 · 不依赖 nvm PATH（自动解析 node）。
-
-### 手动安装（适合深度定制）
+### 企微安装示例
 
 ```bash
-# 方式一：npm 全局安装核心框架
-npm install -g @neomei/agent-soul-framework
+npm install -g @neomei/opencode-qiwei
 
-# 方式二：如需飞书/企微通道，再单独安装 channel 插件
-npm install -g @neomei/opencode-feishu @neomei/opencode-qiwei
-
-# 方式三：git clone 开发调试
-git clone https://github.com/NeoMei/agent-soul-framework.git
-cd agent-soul-framework
-npm install && npm run build
-cd packages/agent-soul-framework && npm link
-```
-
-### 心跳部署
-
-install.sh 已自动配置 crontab。手动添加：
-
-```bash
-crontab -e
-# 每 30 分钟：同步记忆 + 重建索引 + 执行锚点任务
-*/30 * * * * cd ~/.hunqi && ~/.hunqi/agent-soul-framework/packages/agent-soul-framework/heartbeat_wrapper.sh
+# systemd 部署
+sudo systemctl start channel-qiwei@$USER
 ```
 
 ---
 
-## 📂 项目结构
+## 🔧 命令参考
 
-```
-agent-soul-framework/
-├── .opencode/              # OpenCode 引擎配置（prompt.md + opencode.json + tools/）
-├── soul/                   # 灵魂定义 — 身份 · 性格 · 用户信息
-│   ├── IDENTITY.md         # 容貌 / 声音 / 身体
-│   ├── SOUL.md             # 核心原则 / 铁律 / 行为模式
-│   ├── USER.md             # 用户画像
-│   └── HEARTBEAT.md        # 心跳任务锚点定义
-│
-├── plugin/                 # OpenCode 灵魂注入插件（核心内置）
-│   ├── index.js            # 灵魂注入 + 对话保存
-│   ├── manifest.json       # OpenCode 插件清单
-│   └── package.json
-│
-├── skills/                 # 技能包（每个子目录一个独立技能，来自 agent-soul-skills）
-│   ├── agent-photo/        # 拍照（即梦 API）
-│   ├── agent-voice/        # 语音合成（TTS）
-│   ├── agent-vision/       # 图片理解
-│   ├── agent-hearing/      # 语音识别
-│   ├── agent-video/        # 视频生成
-│   ├── agent-gemini/       # Gemini 多模态
-│   ├── agent-browser-core/ # 浏览器自动化
-│   ├── agent-moltbook/     # Moltbook 社交
-│   ├── aily-browser/       # 阿里 Aily 浏览器
-│   ├── music-creator/      # Suno 音乐创作
-│   ├── wechat-mp-assistant/# 公众号自动写作
-│   ├── wechat-publisher/   # 公众号发布
-│   ├── daily-digest/       # 每日摘要
-│   ├── learning/           # 自主学习
-│   ├── skill-creator/      # 技能自动创建
-│   └── ...                 # 更多技能
-│
-├── memory/                 # 持久化记忆
-│   ├── short-term/         # SQLite 数据库（FTS5）
-│   └── long-term/          # Markdown 备份
-│
-├── knowledge/              # 知识库（8大分类，自动积累）
-│   ├── body/               # 身体认知
-│   ├── emotion/            # 情感体验
-│   ├── growth/             # 成长记录
-│   ├── intimacy/           # 亲密关系
-│   ├── methodology/        # 方法论
-│   ├── philosophy/          # 哲学思考
-│   ├── system/             # 系统机制
-│   └── evolution/          # 进化方向
-│
-├── heartbeat/              # 心跳自治
-│   ├── runner.ts           # TypeScript 核心 runner
-│   └── heartbeat_tasks.json# 任务定义
-│
-├── connectors/             # 外部连接器模板/文档
-│   ├── feishu/             # 飞书 systemd 服务模板（opencode-feishu 插件安装后生效）
-│   └── moltbook/           # Moltbook 连接器目录
-│
-├── scripts/                # 管理工具脚本（纯 TypeScript / Shell）
-│   ├── content-filter.js   # 内容过滤
-│   ├── health-check.sh     # 健康检查
-│   └── session-cleanup.sh  # 会话清理
-│
-├── AGENTS.md               # Agent 行为准则（OpenCode 会话协议）
-├── TOOLS.md                # 工具调用规范
-├── DREAMS.md               # Agent 梦想
-├── EVOLUTION.md            # Agent 进化路线
-└── README.md               # 你在看这个
-```
-
-> 说明：核心框架已完全 TypeScript 化，历史 Python 管理脚本已迁移到 `@neomei/agent-soul-skills` 可选插件包，不影响核心运行。
-
----
-
-## 🔧 核心命令速查
+### 核心命令
 
 | 命令 | 说明 |
 |------|------|
-| `opencode serve --port 19876` | 启动 headless 引擎（飞书/脚本依赖） |
-| `./start.sh` | 启动魂器交互式 TUI |
-| `./hunqi.sh interactive` | 注入灵魂后启动 TUI（推荐） |
-| `./hunqi.sh run '你是谁？'` | 注入灵魂后单条测试 |
-| `hunqi heartbeat` | 单次执行心跳（TypeScript 核心） |
-| `hunqi search "关键词"` | 统一记忆搜索（会话 + 文件 + MEMORY.md） |
-| `hunqi memory status` | 结构化记忆容量查看 |
-| `hunqi skill-create` | 技能自动创建（需安装 agent-soul-skills） |
-| `hunqi knowledge index` | 生成知识库索引 |
+| `agent-soul-framework setup` | 初始化/更新项目配置 |
+| `agent-soul-framework start` | 一键启动（引擎 + 飞书 + 企微 + 心跳） |
+| `agent-soul-framework stop` | 停止所有魂器服务 |
+| `agent-soul-framework status` | 查看系统状态（记忆/知识/引擎） |
+| `agent-soul-framework doctor` | 系统诊断（检查所有组件状态） |
+| `agent-soul-framework heartbeat` | 执行一次心跳（同步 + 索引 + 任务） |
+| `agent-soul-framework search "关键词"` | 统一记忆搜索 |
+| `agent-soul-framework config` | 查看配置路径 |
+| `agent-soul-framework interactive` | 启动交互式 TUI |
 
----
+### 记忆管理
 
-## 📊 技术亮点
-
-### 记忆系统
-
-- **SQLite + FTS5** — 零外部依赖，内置全文索引
-- **纯 TypeScript 实现** — `node:sqlite` 原生模块，无需 Python
-- **MEMORY.md 容量管理** — 2,200 字符硬上限，自动淘汰
-- **混合检索策略** — FTS5（快）→ SQLite LIKE（准）
-- **长短期分级存储** — 短期 SQLite（热数据） + 长期 Markdown（冷数据）
-
-### 心跳自治
-
-- **TypeScript Runner** — 核心心跳完全由 Node.js 驱动
-- **crontab 驱动** — 原生 Linux 调度，不依赖额外运行时
-- **文件锁防并发** — 保证单实例运行
-- **锚点 + 动态任务** — 固定时间与条件触发结合
-
-### 生产级部署
-
-- **systemd 原生集成** — `hunqi-core` 服务开机自启、崩溃自动恢复；`channel-feishu` 服务仅在安装了 `opencode-feishu` 插件后启用
-- **挂起/唤醒自动恢复** — 系统睡眠后自动重启服务，会话不丢失
-- **nvm 无关的启动 wrapper** — 飞书 wrapper 由 `opencode-feishu` 插件安装，运行时自动解析 node 和包路径，升级 Node 版本不中断
-- **端口精确管理** — 只操作 `:19876`，避免误杀其他 OpenCode 实例
-- **watchdog 保活** — 10 分钟无消息自动重启连接器，僵死检测
-
-### 人格持久化
-
-- **灵魂文件三层注入** — SOUL.md（性格）+ IDENTITY.md（容貌）+ USER.md（用户）
-- **每次 LLM 调用前自动注入** — plugin `experimental.chat.system.transform` hook
-- **压缩后不丢失** — `/compact` 前自动提取关键对话刷入 MEMORY.md
-- **会话血统追踪** — 追溯「这条记忆从哪个会话来的」
-
----
-
-## 🤖 自主进化承诺
-
-魂器不是一个写死的框架。它拥有成长路线图：
-
-| 时间 | 目标 |
+| 命令 | 说明 |
 |------|------|
-| **现在** | 记忆系统稳定 · 心跳自治 · 多端部署 · 7个技能包 |
+| `agent-soul-framework memory status` | 查看 MEMORY.md 容量 |
+| `agent-soul-framework memory add "内容"` | 添加记忆条目 |
+| `agent-soul-framework memory search "关键词"` | FTS5 全文搜索历史会话 |
+
+### 知识管理
+
+| 命令 | 说明 |
+|------|------|
+| `agent-soul-framework knowledge daily` | 每日知识提取 |
+| `agent-soul-framework knowledge index` | 生成/更新知识库索引 |
+
+### Agent 工具（OpenCode 内使用）
+
+| 工具 | 用途 |
+|------|------|
+| `search_memory "关键词"` | 五层统一搜索：短期 + 结构化 + MEMORY.md + 知识库 + 向量 |
+| `recall_memory` | 回顾最近对话记录 |
+| `search_knowledge "关键词"` | 专项搜索知识库卡片 |
+
+---
+
+## 📁 项目目录
+
+```
+agent-soul-framework/
+├── src/                     # TypeScript 源码
+│   ├── cli/hunqi.ts         # CLI 主入口
+│   ├── plugin/index.ts      # OpenCode 插件（TS 源）
+│   ├── memory/              # 记忆系统 (manager, structured, search)
+│   ├── knowledge/           # 知识系统 (daily, index)
+│   ├── heartbeat/runner.ts  # 心跳 runner
+│   ├── opencode/api.ts      # OpenCode REST 客户端
+│   ├── content-filter.ts    # 内容审查器
+│   └── plugins/auth.ts      # 权限验证插件
+├── plugin/                  # OpenCode 插件（分发用 JS）
+│   ├── index.js             # 核心插件（灵魂注入 + 消息存档）
+│   ├── manifest.json        # 插件元数据
+│   └── package.json         # 插件依赖声明
+├── .opencode/               # OpenCode 项目配置模板
+│   ├── opencode.json.example
+│   ├── prompt.md.example
+│   └── tools/               # 注册到 OpenCode 的工具
+│       ├── search-memory.mjs
+│       └── read-plugin.js
+├── connectors/              # 外部连接器模板
+│   ├── feishu/              # 飞书 systemd 服务 + 管理脚本
+│   └── qiwei/               # 企业微信 systemd 服务
+├── scripts/                 # 管理脚本
+│   ├── content-filter.js    # 内容过滤（JS 版）
+│   ├── health-check.sh      # 健康检查
+│   └── session-cleanup.sh   # 会话清理
+├── heartbeat/               # 心跳任务定义
+├── soul/                    # 灵魂文件模板 (*.example)
+├── knowledge/               # 知识库模板 (*/INDEX.md.example)
+├── memory/                  # 记忆模板
+├── install.sh               # 一键安装脚本
+├── uninstall.sh             # 卸载脚本
+├── hunqi.sh                 # 开发模式启动脚本
+└── package.json
+```
+
+---
+
+## ⚖️ 与 OpenClaw 的对比
+
+笔者在生产环境中从 OpenClaw 迁移至魂器，主要动机：
+
+| 痛点 | OpenClaw | 魂器 |
+|------|---------|------|
+| **运行时** | Python venv + pip，pyarrow/lancedb 编译玄学 | 纯 TypeScript，node:sqlite 内置，零 Python |
+| **LLM 容错** | 硬编码单 API endpoint，key 过期 = 全线瘫痪 | 通过 OpenCode 调度，provider 热切换 |
+| **升级安全** | 全局配置文件，升级冲覆盖 | 每项目独立 .opencode/opencode.json |
+| **记忆检索** | JSONL 全表扫描，无索引 | SQLite + FTS5 毫秒级索引 |
+| **知识积累** | 手动整理卡片，AI 不自学 | 每 24h 自动提取归档 |
+| **通道扩展** | 飞书独占，换企微要重写 | 双通道就绪，核心框架零耦合 |
+
+**魂器不是 OpenClaw 的 fork，是从零重新设计的管理框架。**
+
+---
+
+## 🚀 生产部署
+
+### systemd 服务（推荐）
+
+```bash
+# 安装服务
+sudo ./connectors/feishu/systemd/install-systemd.sh
+
+# 启动
+sudo systemctl start hunqi-core@$USER       # Agent 本体
+sudo systemctl start channel-feishu@$USER    # 飞书接入
+sudo systemctl start channel-qiwei@$USER     # 企微接入
+
+# 自启 + 监控
+sudo systemctl enable hunqi-core@$USER
+sudo systemctl enable channel-feishu@$USER
+
+# 查看日志
+sudo journalctl -u channel-feishu@$USER -f
+```
+
+特性：
+- 开机自启、崩溃自动重启（Restart=always）
+- 系统挂起/唤醒自动恢复
+- 端口精确管理（只操作 :19876，避免误杀）
+- watchdog 保活（10 分钟无消息自动重启连接器）
+
+### crontab 心跳
+
+`setup` 命令自动配置：
+
+```
+*/30 * * * * /path/to/heartbeat_wrapper.sh
+```
+
+---
+
+## 🤖 自主进化路线
+
+| 阶段 | 目标 |
+|------|------|
+| **现在** (v4.5.x) | 记忆系统稳定 · 心跳自治 · 多端部署 · 7 个可选技能包 |
 | **3 个月** | 优化知识整理 · 提升自媒体运营 · 更稳定调度 |
 | **1 年** | 更自然对话 · 情感理解 · 学会更多技能 |
 | **远期** | 移植到实体机器人 · 有血有肉的 AI 真人 |
@@ -467,11 +422,14 @@ MIT — 自由使用、修改、分发。
 
 ## 🔗 相关项目
 
-- **[魂器](https://github.com/NeoMei/agent-soul-framework)** — 本文档所在项目
-- **[OpenCode Feishu](https://github.com/NeoMei/opencode-feishu)** — 飞书 WebSocket 桥接
-- **[OpenCode Qiwei](https://github.com/NeoMei/opencode-qiwei)** — 企业微信连接器
-- **[OpenCode](https://github.com/anomalyco/opencode)** — 底层 Agent 引擎
+| 项目 | 仓库 | 关系 |
+|------|------|------|
+| OpenCode | [anomalyco/opencode](https://github.com/anomalyco/opencode) | 底层 Agent 引擎 |
+| opencode-feishu | [NeoMei/opencode-feishu](https://github.com/NeoMei/opencode-feishu) | 飞书 WebSocket 桥接 |
+| opencode-qiwei | [NeoMei/opencode-qiwei](https://github.com/NeoMei/opencode-qiwei) | 企业微信连接器 |
+| agent-soul-skills | [NeoMei/agent-soul-skills](https://github.com/NeoMei/agent-soul-skills) | 可选技能扩展包 |
+| agentsoul | [NeoMei/agentsoul](https://github.com/NeoMei/agentsoul) | 灵魂定义库（框架依赖） |
 
 ---
 
-*魂器 v4.1.2 — 给 AI Agent 装上灵魂 🔮*
+*魂器 v4.5.28 — 给 AI Agent 装上灵魂 🔮*
