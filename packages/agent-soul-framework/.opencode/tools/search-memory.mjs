@@ -25,7 +25,7 @@ const KNOWLEDGE_DIR = join(PROJECT_DIR, "knowledge");
 function searchVector(query, limit = 5) {
   try {
     // 查找 memory_manager.py 脚本路径
-    const { execSync } = require("node:child_process");
+    const { execSync } = await import("node:child_process");
     const scriptsDir = join(PROJECT_DIR, "..", "agent-soul-skills", "scripts");
     const pyScript = join(scriptsDir, "memory_manager.py");
     if (!existsSync(pyScript)) return [];

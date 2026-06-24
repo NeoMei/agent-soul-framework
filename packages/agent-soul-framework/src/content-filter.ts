@@ -1,3 +1,7 @@
+import { createHash } from 'node:crypto';
+import { existsSync, mkdirSync, appendFileSync } from 'node:fs';
+import { join } from 'node:path';
+
 /**
  * ContentFilter — 审宝内容审查器
  * 在消息到达 LLM 之前进行代码层拦截
