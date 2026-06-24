@@ -603,6 +603,48 @@ async function startQiwei(qiweiConfig: string) {
   } catch { /* optional */ }
 }
 
+
+async function cmdStop() {
+  console.log('\n  🛑 魂器停止中...\n');
+
+  let stopped = 0;
+
+  // 1. 停止飞书桥接
+  try {
+    const { execSync: es1 } = await import('node:child_process');
+    es1('opencode-feishu stop 2>/dev/null || true', { stdio: 'ignore', timeout: 5000 });
+    console.log('  📱 飞书桥接: 已停止');
+    stopped++;
+  } catch { console.log('  📱 飞书桥接: 未运行'); }
+
+  // 2. 停止企微桥接
+  try {
+    const { execSync: es2 } = await import('node:child_process');
+    es2('opencode-qiwei stop 2>/dev/null || true', { stdio: 'ignore', timeout: 5000 });
+    console.log('  💬 企微桥接: 已停止');
+    stopped++;
+  } catch { console.log('  💬 企微桥接: 未运行'); }
+
+  // 3. 停止 opencode serve（通过端口杀进程）
+  const PORT = parseInt(process.env.OPENCODE_PORT || '19876', 10);
+  try {
+    const { execSync: es3 } = await import('node:child_process');
+    if (process.platform === 'win32') {
+      es3(`for /f "tokens=5" %a in ('netstat -ano ^| findstr :${PORT}.*LISTENING') do taskkill /F /PID %a 2>nul`, { stdio: 'ignore', timeout: 5000 });
+    } else {
+      es3(`lsof -iTCP:${PORT} -sTCP:LISTEN -t 2>/dev/null | xargs -r kill 2>/dev/null; true`, { stdio: 'ignore', timeout: 5000 });
+    }
+    console.log('  🧠 opencode serve: 已停止 (端口 ' + PORT + ')');
+    stopped++;
+  } catch { console.log('  🧠 opencode serve: 未运行 (端口 ' + PORT + ')'); }
+
+  if (stopped === 0) {
+    console.log('\n  没有运行中的服务');
+  } else {
+    console.log('\n  ✅ 已停止 ' + stopped + ' 个服务');
+  }
+  console.log();
+}
 async function cmdStart() {
   const cwd = process.cwd();
   const hasSoul = existsSync(join(cwd, 'soul', 'SOUL.md'));
@@ -702,6 +744,7 @@ const HELP = '\n  魂器 · Agent Soul Framework  v' + pkgVersion + '\n\n' +
   '  用法: agent-soul-framework <command> [options]\n\n' +
   '  核心命令:\n' +
   '    start               一键启动（引擎+飞书+企微+心跳）\n' +
+  '    stop                停止所有魂器服务\n' +
   '    setup               初始化/配置项目（模板+心跳+crontab）\n' +
   '    status              查看系统状态（记忆/知识/引擎）\n' +
   '    heartbeat           执行一次心跳（同步 + 索引 + 任务）\n' +
@@ -732,6 +775,7 @@ async function main() {
     case undefined: case 'help': case '--help': case '-h':
       console.log(HELP); break;
     case 'start':        await cmdStart(); break;
+    case 'stop':         await cmdStop(); break;
     case 'setup':         await cmdSetup(); break;
     case 'status':       await cmdStatus(); break;
     case 'heartbeat':    await cmdHeartbeat(); break;
