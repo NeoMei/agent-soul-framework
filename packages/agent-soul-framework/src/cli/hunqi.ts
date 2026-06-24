@@ -369,6 +369,30 @@ async function cmdSetup() {
       const dst = join(dstPluginDir, f);
       if (statSync(src).isFile() && !existsSync(dst)) { copyFileSync(src, dst); copied++; }
     }
+
+  // 自动检测并合并已有 OpenCode 配置
+  const globalConfigPath = join(homedir(), '.config', 'opencode', 'opencode.json');
+  if (existsSync(globalConfigPath)) {
+    try {
+      const globalCfg = JSON.parse(readFileSync(globalConfigPath, 'utf-8'));
+      const dstOc = join(cwd, '.opencode', 'opencode.json');
+      if (existsSync(dstOc)) {
+        const localCfg = JSON.parse(readFileSync(dstOc, 'utf-8'));
+        // 合并 provider/model 等关键字段
+        if (globalCfg.model && localCfg.model === 'your-default-model') {
+          localCfg.model = globalCfg.model;
+        }
+        if (globalCfg.provider &&
+            localCfg.provider &&
+            Object.keys(localCfg.provider).length === 1 &&
+            Object.keys(localCfg.provider)[0] === 'your-provider-name') {
+          localCfg.provider = globalCfg.provider;
+        }
+        writeFileSync(dstOc, JSON.stringify(localCfg, null, 2));
+        console.log('  📋 从全局配置合并了 model/provider');
+      }
+    } catch { /* 全局配置读取失败，跳过 */ }
+    }
   }
 
   }

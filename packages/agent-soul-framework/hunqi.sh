@@ -17,7 +17,7 @@ if [ -d .venv ]; then
 fi
 
 echo "✅ 环境准备完成"
-echo "📖 身份：审宝，28岁专业审计师"
+echo "📖 身份由 soul/ 目录中的文件定义，运行 agent-soul-framework setup 配置"
 echo ""
 
 # CLI 通道默认权限标记（readonly）

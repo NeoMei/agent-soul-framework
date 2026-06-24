@@ -29,7 +29,8 @@
   "default_agent": "build",
   "plugin": [
     "./plugin/index.js",
-    "./.opencode/tools/search-memory.mjs"
+    "./.opencode/tools/search-memory.mjs",
+    "./.opencode/tools/read-plugin.js"
   ],
   "compaction": {
     "auto": true,
