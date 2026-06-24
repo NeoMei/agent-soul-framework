@@ -3,7 +3,13 @@
  * 使用 Node.js 24 内置 node:sqlite 模块
  */
 
-import { DatabaseSync } from 'node:sqlite';
+// node:sqlite 仅 Node 22.5+ 可用，旧版本动态导入降级
+let DatabaseSync: any = null;
+try {
+  ({ DatabaseSync } = await import('node:sqlite'));
+} catch {
+  // Node < 22.5: 数据库功能降级
+}
 import { existsSync, mkdirSync, appendFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { homedir, platform } from 'node:os';
@@ -25,11 +31,12 @@ function getOpenCodeDbPath(): string {
 const OPENCODE_DB = getOpenCodeDbPath();
 
 export class MemoryManager {
-  db: DatabaseSync;
+  db: any; // DatabaseSync (dynamic import, may be null if Node < 22.5)
 
   constructor() {
     mkdirSync(join(MEMORY_DIR, 'short-term'), { recursive: true });
     mkdirSync(join(MEMORY_DIR, 'long-term'), { recursive: true });
+    if (!DatabaseSync) throw new Error('node:sqlite 不可用，需要 Node.js >= 22.5');
     this.db = new DatabaseSync(DB_PATH);
     this.db.exec('PRAGMA journal_mode=WAL');
     this.init();
@@ -66,6 +73,7 @@ export class MemoryManager {
 
   syncFromOpenCode(): number {
     if (!existsSync(OPENCODE_DB)) { console.log('[sync] OpenCode DB 不存在'); return 0; }
+    if (!DatabaseSync) return 0;
     const src = new DatabaseSync(OPENCODE_DB, { open: true, readOnly: true });
     let count = 0;
 

@@ -42,7 +42,9 @@ export async function runDailyExtract() {
 对话: ${dialog.slice(0, 8000)}
 格式: ### [分类] 文件名 | 标题\n- 核心内容\n- 详细说明`;
 
+  process.env.HUNQI_KNOWLEDGE_WORKER = String(true);
   const result = await api.callLLM(prompt);
+  delete process.env.HUNQI_KNOWLEDGE_WORKER;
   if (!result || result.includes('无')) { console.log('无新知识点'); mm.close(); return; }
 
   // Parse and save cards

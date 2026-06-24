@@ -3,7 +3,13 @@
  * 替代 Python memory_structured.py
  */
 
-import { DatabaseSync } from 'node:sqlite';
+// node:sqlite 仅 Node 22.5+ 可用，旧版本动态导入降级
+let DatabaseSync: any = null;
+try {
+  ({ DatabaseSync } = await import('node:sqlite'));
+} catch {
+  // Node < 22.5: 数据库功能降级
+}
 import { existsSync, readFileSync, writeFileSync, mkdirSync, renameSync } from 'node:fs';
 import { join } from 'node:path';
 
@@ -18,10 +24,11 @@ const SECTION_MARKER = '## 用户的记忆 §';
 const SEPARATOR = '\n\n§§\n\n';
 
 export class StructuredMemory {
-  private db: DatabaseSync;
+  private db: any; // DatabaseSync (dynamic import)
 
   constructor() {
     mkdirSync(join(MEMORY_DIR, 'short-term'), { recursive: true });
+    if (!DatabaseSync) throw new Error('node:sqlite 不可用，需要 Node.js >= 22.5');
     this.db = new DatabaseSync(MEMORY_DB);
     this.init();
   }
@@ -41,6 +48,7 @@ export class StructuredMemory {
 
   /** 从 conversations.db 重建 FTS5 索引 */
   indexSessions(limit = 20) {
+    if (!DatabaseSync) return 0;
     const src = new DatabaseSync(CONVERSATIONS_DB, { readOnly: true });
     const sessions = src.prepare(
       'SELECT session_id, MAX(timestamp) as last_ts FROM conversations GROUP BY session_id ORDER BY last_ts DESC LIMIT ?'
