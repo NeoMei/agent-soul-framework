@@ -50,10 +50,10 @@ if [ "$1" == "run" ] && [ -n "$2" ]; then
     exit 1
 
 elif [ "$1" == "interactive" ]; then
-    # 交互模式 - @neomei/agentsoul 插件会自动注入灵魂，无需 stdin
+    # 交互模式 - @neomei/agent-soul-framework 插件会自动注入灵魂，无需 stdin
     echo "🎯 启动交互模式..."
     echo ""
-    echo "💡 @neomei/agentsoul 插件会在每次 LLM 调用时自动注入灵魂"
+    echo "💡 @neomei/agent-soul-framework 插件会在每次 LLM 调用时自动注入灵魂"
     echo "   Agent会记得自己是谁 ✨"
     echo ""
     if [ -t 0 ]; then
