@@ -177,7 +177,7 @@ function saveMessage(sessionID, role, content) {
 
 export const meta = {
   name: 'hunqi-plugin',
-  version: '4.5.28',
+  version: '4.6.0',
   description: '魂器 OpenCode 插件 — 自动注入灵魂 + 保存对话',
   hooks: [
     'session.created',
