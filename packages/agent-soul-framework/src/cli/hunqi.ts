@@ -11,6 +11,46 @@ import { homedir } from 'node:os';
 
 const PACKAGE_ROOT = join(import.meta.dirname, '..', '..');
 
+/**
+ * 从一份 opencode.json 的 plugin 数组中屏蔽 @neomei/agentsoul。
+ *
+ * 魂器（agent-soul-framework）自带完整的灵魂注入 + 对话记忆插件（plugin/index.js），
+ * 与 @neomei/agentsoul 是功能重叠的独立项目，二者不应同时加载：
+ *   - agentsoul 读 ~/.agentsoul/soul/ 与 ~/.agentsoul/memory.db
+ *   - 魂器读项目内 soul/ 与 memory/short-term/conversations.db
+ * 同存会导致双重灵魂注入、数据源混乱。装了魂器即应以魂器为准，自动移除 agentsoul 引用。
+ *
+ * @returns 被移除的引用条数（0 表示无需处理）
+ */
+function blockAgentsoul(configPath: string): number {
+  if (!existsSync(configPath)) return 0;
+  let cfg: any;
+  try {
+    cfg = JSON.parse(readFileSync(configPath, 'utf-8'));
+  } catch {
+    return 0; // 配置解析失败，不动它
+  }
+  const plugin = cfg.plugin;
+  if (!Array.isArray(plugin)) return 0;
+
+  const before = plugin.length;
+  // 匹配 bare 包名、带 scope 的各种写法，以及任意路径形式（防止 ./node_modules/... 等残留）
+  const isAgentsoul = (entry: unknown): boolean => {
+    if (typeof entry !== 'string') return false;
+    const e = entry.replace(/\\/g, '/').toLowerCase();
+    return e === '@neomei/agentsoul'
+      || e.startsWith('@neomei/agentsoul/')
+      || /(^|[/\\])@neomei[/\\]agentsoul([/\\]|$)/.test(e)
+      || /(^|[/\\])node_modules[/\\]@neomei[/\\]agentsoul([/\\]|$)/.test(e);
+  };
+  cfg.plugin = plugin.filter((e: unknown) => !isAgentsoul(e));
+  const removed = before - cfg.plugin.length;
+  if (removed > 0) {
+    writeFileSync(configPath, JSON.stringify(cfg, null, 2));
+  }
+  return removed;
+}
+
 function loadJSON(filepath: string): unknown {
   try { return JSON.parse(readFileSync(filepath, 'utf-8')); } catch { return {}; }
 }
@@ -393,6 +433,18 @@ async function cmdSetup() {
       }
     } catch { /* 全局配置读取失败，跳过 */ }
     }
+
+    // 装了魂器即屏蔽 @neomei/agentsoul（功能重叠的独立项目，避免双重注入 + 数据源冲突）
+    // 工作区配置优先（魂器自带 ./plugin/index.js），再处理全局配置
+    const localOc = join(cwd, '.opencode', 'opencode.json');
+    const removedLocal = blockAgentsoul(localOc);
+    if (removedLocal > 0) {
+      console.log('  🚫 已屏蔽 @neomei/agentsoul（工作区配置，移除 ' + removedLocal + ' 处）— 由魂器插件接管');
+    }
+    const removedGlobal = blockAgentsoul(globalConfigPath);
+    if (removedGlobal > 0) {
+      console.log('  🚫 已屏蔽 @neomei/agentsoul（全局配置，移除 ' + removedGlobal + ' 处）— 由魂器插件接管');
+    }
   }
 
   }
@@ -432,65 +484,14 @@ async function cmdSetup() {
       const { execSync } = await import('node:child_process');
       execSync('opencode-feishu setup', { stdio: 'inherit', timeout: 300000 });
       console.log('\n  ✅ 飞书配置完成');
-
-      // 注入灵魂 hooks 到 feishu.json
-      try {
-        const hooksDir = join(cwd, 'connectors', 'feishu', 'hooks');
-        const srcHooksDir = join(PACKAGE_ROOT, 'connectors', 'feishu', 'hooks');
-        if (existsSync(srcHooksDir)) {
-          if (!existsSync(hooksDir)) mkdirSync(hooksDir, { recursive: true });
-          for (const f of ['on-session-created.sh', 'on-session-idle.sh']) {
-            const src = join(srcHooksDir, f);
-            const dst = join(hooksDir, f);
-            if (existsSync(src) && !existsSync(dst)) {
-              copyFileSync(src, dst);
-              try { if (process.platform !== 'win32') execSync('chmod +x ' + dst, { stdio: 'ignore', timeout: 3000 }); } catch {}
-            }
-          }
-        }
-        const feishuRaw = readFileSync(feishuConfig, 'utf-8');
-        const feishuJson = JSON.parse(feishuRaw);
-        feishuJson.hooks = {
-          onSessionCreated: 'connectors/feishu/hooks/on-session-created.sh',
-          onSessionIdle: 'connectors/feishu/hooks/on-session-idle.sh',
-        };
-        writeFileSync(feishuConfig, JSON.stringify(feishuJson, null, 2));
-        console.log('  🪝 灵魂 hooks: 已注入 feishu.json ✅');
-      } catch (hookErr: any) {
-        console.log('  🪝 灵魂 hooks: 注入失败 (' + (hookErr.message || 'unknown') + ')');
-      }
+      // NOTE: 灵魂注入由魂器自带插件 ./plugin/index.js 处理（session.created/chat.message hooks），
+      // 不再向 feishu.json 写入 onSession*/onIdle* 脚本引用。原 connectors/feishu/hooks/*.sh 为
+      // no-op 占位，已于 commit 8425713 删除；此处避免重新写入指向已删脚本的孤儿配置。
     } catch {
       console.log('\n  ⚠️  飞书配置跳过（手动配置: opencode-feishu setup）');
     }
   } else {
     console.log('  📱 飞书连接: 已配置');
-    // 补充 hooks 配置（如果缺失）
-    try {
-      const { execSync: esc2 } = await import('node:child_process');
-      const feishuRaw = readFileSync(feishuConfig, 'utf-8');
-      const feishuJson = JSON.parse(feishuRaw);
-      if (!feishuJson.hooks || !feishuJson.hooks.onSessionCreated) {
-        const hooksDir = join(cwd, 'connectors', 'feishu', 'hooks');
-        const srcHooksDir = join(PACKAGE_ROOT, 'connectors', 'feishu', 'hooks');
-        if (existsSync(srcHooksDir)) {
-          if (!existsSync(hooksDir)) mkdirSync(hooksDir, { recursive: true });
-          for (const f of ['on-session-created.sh', 'on-session-idle.sh']) {
-            const src = join(srcHooksDir, f);
-            const dst = join(hooksDir, f);
-            if (existsSync(src) && !existsSync(dst)) {
-              copyFileSync(src, dst);
-              try { if (process.platform !== 'win32') esc2('chmod +x ' + dst, { stdio: 'ignore', timeout: 3000 }); } catch {}
-            }
-          }
-        }
-        feishuJson.hooks = {
-          onSessionCreated: 'connectors/feishu/hooks/on-session-created.sh',
-          onSessionIdle: 'connectors/feishu/hooks/on-session-idle.sh',
-        };
-        writeFileSync(feishuConfig, JSON.stringify(feishuJson, null, 2));
-        console.log('  🪝 灵魂 hooks: 已注入 feishu.json ✅');
-      }
-    } catch {}
     try {
       const { execSync } = await import('node:child_process');
       let feishuStatus: string;
@@ -513,33 +514,7 @@ async function cmdSetup() {
     console.log('  跳过企微配置，继续...');
   } else {
     console.log('  💬 企微连接: 已配置');
-    // 补充 hooks 配置（如果缺失）
-    try {
-      const { execSync: esc3 } = await import('node:child_process');
-      const qiweiRaw = readFileSync(qiweiConfig, 'utf-8');
-      const qiweiJson = JSON.parse(qiweiRaw);
-      if (!qiweiJson.hooks || !qiweiJson.hooks.onSessionCreated) {
-        const hooksDir = join(cwd, 'connectors', 'qiwei', 'hooks');
-        const srcHooksDir = join(PACKAGE_ROOT, 'connectors', 'qiwei', 'hooks');
-        if (existsSync(srcHooksDir)) {
-          if (!existsSync(hooksDir)) mkdirSync(hooksDir, { recursive: true });
-          for (const f of ['on-session-created.sh', 'on-session-idle.sh']) {
-            const src = join(srcHooksDir, f);
-            const dst = join(hooksDir, f);
-            if (existsSync(src) && !existsSync(dst)) {
-              copyFileSync(src, dst);
-              try { if (process.platform !== 'win32') esc3('chmod +x ' + dst, { stdio: 'ignore', timeout: 3000 }); } catch {}
-            }
-          }
-        }
-        qiweiJson.hooks = {
-          onSessionCreated: 'connectors/qiwei/hooks/on-session-created.sh',
-          onSessionIdle: 'connectors/qiwei/hooks/on-session-idle.sh',
-        };
-        writeFileSync(qiweiConfig, JSON.stringify(qiweiJson, null, 2));
-        console.log('  🪝 灵魂 hooks: 已注入 qiwei.json ✅');
-      }
-    } catch {}
+    // NOTE: 同 feishu 段，灵魂注入由魂器自带 ./plugin/index.js 统一处理，不再写入 hooks 脚本引用。
     try {
       const { execSync } = await import('node:child_process');
       let qstatus: string;
