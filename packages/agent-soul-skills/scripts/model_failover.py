@@ -28,29 +28,29 @@ import urllib.request
 from datetime import datetime, timezone, timedelta
 from pathlib import Path
 
-PROJECT_DIR = Path(__file__).parent.parent
-CONFIG_PATH = PROJECT_DIR / ".opencode" / "opencode.json"
+PROJECT_DIR = Path(__file__).resolve().parent.parent.parent.parent
+CONFIG_PATH = Path.home() / ".config" / "opencode" / "opencode.json"
 STATE_PATH = PROJECT_DIR / "memory" / ".model_failover_state.json"
 LOG_PATH = PROJECT_DIR / "memory" / ".model_failover.log"
 
 # 降级链配置
 FAILOVER_CHAIN = [
     {
-        "id": "kimi-k2p6",
-        "model": "kimi-for-coding/k2p6",
-        "name": "Kimi K2.6 (主力)",
+        "id": "kimi-k3",
+        "model": "kimi-for-coding/k3",
+        "name": "Kimi K3 (主力)",
         "priority": 1,
     },
     {
-        "id": "qwen3.6-plus",
-        "model": "alibaba-coding-plan-cn/qwen3.6-plus",
-        "name": "Qwen 3.6 Plus (备用1)",
+        "id": "glm-5.2",
+        "model": "zhipuai-coding-plan/glm-5.2",
+        "name": "GLM 5.2 (备用1)",
         "priority": 2,
     },
     {
-        "id": "glm-5.1",
-        "model": "zhipuai-coding-plan/glm-5.1",
-        "name": "GLM 5.1 (备用2)",
+        "id": "qwen3.7-plus",
+        "model": "alibaba-coding-plan-cn/qwen3.7-plus",
+        "name": "Qwen 3.7 Plus (备用2)",
         "priority": 3,
     },
 ]
@@ -250,26 +250,20 @@ def switch_model(tier_index):
     config["model"] = target["model"]
     save_config(config)
     
-    # 重启 opencode serve（发送 SIGHUP 或优雅重启）
+    # 重启 opencode serve（通过 systemd 重启）
     try:
-        # 查找 opencode serve 进程并发送 SIGHUP
         result = subprocess.run(
-            ["pgrep", "-f", "opencode serve"],
-            capture_output=True, text=True
+            ["systemctl", "--user", "restart", "opencode-serve.service"],
+            capture_output=True, text=True, timeout=30
         )
         if result.returncode == 0:
-            for pid in result.stdout.strip().split("\n"):
-                if pid.strip():
-                    try:
-                        os.kill(int(pid.strip()), 1)  # SIGHUP
-                        log(f"[RELOAD] Sent SIGHUP to opencode serve PID {pid}")
-                    except Exception as e:
-                        log(f"[WARN] Failed to send SIGHUP to PID {pid}: {e}")
+            log("[RELOAD] Restarted opencode-serve.service via systemctl")
+        else:
+            log(f"[WARN] systemctl restart failed: {result.stderr.strip()}")
         
-        # 如果 SIGHUP 不支持，记录需要手动重启
-        log("[INFO] Config updated. opencode serve will reload on next request.")
+        log("[INFO] Config updated. opencode serve restarted.")
         return True
-        
+         
     except Exception as e:
         log(f"[ERROR] Failed to reload: {e}")
         return False
